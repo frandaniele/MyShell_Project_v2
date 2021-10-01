@@ -29,3 +29,11 @@ char* busca_palabras(char* str, char* separator, int n)
     }
     return ptr;
 }
+
+void reemplazar_char(char* string, char ch){
+    char *reemplazado;
+
+    if ((reemplazado=strchr(string, ch)) != NULL){
+        *reemplazado = '\0';
+    }
+}

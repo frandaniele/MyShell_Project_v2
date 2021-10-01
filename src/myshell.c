@@ -38,8 +38,15 @@ int main(int argc, char **argv){
     char username[32];
     char hostname[32];
     char path[256];
+    char user_input[50];
 
-    print_cmdline_prompt(username, hostname, path);
+    while(1) {
+        print_cmdline_prompt(username, hostname, path);
+        
+        fgets(user_input, 50, stdin);
+        reemplazar_char(user_input, '\n');
+        identificar_cmd(user_input);
+    }
 
     return 0;
 }
@@ -47,7 +54,6 @@ int main(int argc, char **argv){
 void help_menu(){
     
     printf("-h --help       Despliega el menú de ayuda\n");
-
 }
 
 int get_username(char* dst){
@@ -63,6 +69,7 @@ int get_username(char* dst){
 }
 
 int get_hostname(char* dst){
+
     read_text_file("/proc/sys/kernel/hostname", 32, dst);
 
     dst = strtok(dst, "\n");
@@ -76,12 +83,16 @@ int get_hostname(char* dst){
 
 int get_current_path(char* dst){
 
-    strcpy(dst,getenv("PWD"));
+    char *path = getenv("PWD");
+    int offset = strlen(getenv("HOME"));
+    path = path + offset;
 
-    if(dst == NULL){
+    if(path == NULL){
         printf("Error al buscar el path actual.\n");
         exit(-1);
     }
+
+    strcpy(dst, path);
 
     return 0;
 }
@@ -90,5 +101,15 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
     get_username(username);
     get_hostname(hostname);
     get_current_path(current_path);
-    printf("\n%s@%s:~%s$ ", username, hostname, current_path);
+
+    printf("%s@%s:~%s$ ", username, hostname, current_path);
+}
+
+void identificar_cmd(char* cmd){
+    if(strcmp(cmd, "quit") == 0){
+        exit(0);
+    }
+    else if(strcmp("clr", cmd) == 0){
+        printf("\033[1;1H\033[2J"); //https://www.geeksforgeeks.org/clear-console-c-language/ y cambio /e por /33
+    }
 }
