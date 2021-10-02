@@ -106,6 +106,8 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
 }
 
 void identificar_cmd(char* cmd){
+    while(isspace(*cmd)) cmd++;
+
     if(strcmp(cmd, "quit") == 0){
         exit(0);
     }
@@ -145,7 +147,7 @@ void eco(char* cmd){
         if(ptr != NULL){
             i = 0;
             while(isspace(*ptr)) i++;
-            if(ptr[0] == '$'){
+            if(ptr[i] == '$'){
                 ptr = getenv(ptr+1);
             }      
             printf("%s ", ptr);
@@ -157,5 +159,38 @@ void eco(char* cmd){
 }
 
 void cambiar_dir(char* dir){
+    char* viejo = getenv("PWD");
 
+    if(strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){
+        char* nuevo = getenv("OLDPWD");
+        if(nuevo != NULL){
+            if(setenv("PWD", viejo, 1) == 0){
+                setenv("OLDPWD", viejo, 1);
+            }
+            else{
+                fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
+            }
+        }
+        else{
+            fprintf(stderr, "ERROR: Oldpwd not set.\n");
+        }
+    }
+    else{
+        if(chdir(dir) != 0){
+            fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
+        }
+        else{
+            char buf[256];
+            if(getcwd(buf, 256) == NULL){
+                fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
+                exit(-1);
+            }
+            if(setenv("PWD", buf, 1) == 0){
+                setenv("OLDPWD", viejo, 1);
+            }
+            else{
+                fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
+            }
+        }
+    }
 }

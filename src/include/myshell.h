@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include<unistd.h> 
 
 /**
   @file myshell.h
@@ -9,7 +10,6 @@
 
   @author Francisco Daniele
   @date 10/2021
-
 */
 
 /* Muestra un menu de ayuda */
@@ -30,7 +30,7 @@ void identificar_cmd(char* cmd);
 /* Invoca (o trata) el input del usuario que no es un cmd interno  */
 void invocar(char* program);
 
-/* Simil a comando echo    */
+/* Simil a comando echo de Linux  */
 void eco(char* cmd);
 
 /* Cambia el directorio actual */
