@@ -112,4 +112,50 @@ void identificar_cmd(char* cmd){
     else if(strcmp("clr", cmd) == 0){
         printf("\033[1;1H\033[2J"); //https://www.geeksforgeeks.org/clear-console-c-language/ y cambio /e por /33
     }
+    else if(strncmp("cd ", cmd, 3) == 0 || strncmp("cd\t", cmd, 3) == 0){
+        cambiar_dir(cmd+3); //offset de 3 char para pasar solo argumento de llamada
+    }
+    else if(strncmp("echo ", cmd, 5) == 0 || strncmp("echo\t", cmd, 5) == 0){
+        eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
+    }
+    else{
+        invocar(cmd);
+    }
+}
+
+void invocar(char* program){
+
+}
+
+void eco(char* cmd){
+    int i;
+
+    char* ptr = strtok(cmd, " ");
+    if(ptr != NULL){
+        i = 0;
+        while(isspace(*ptr)) i++;
+        if(ptr[i] == '$'){
+            ptr = getenv(ptr+1);
+        }
+        printf("%s ", ptr);
+    }
+
+    while(ptr != NULL){
+        char* ptr = strtok(NULL, " ");
+        if(ptr != NULL){
+            i = 0;
+            while(isspace(*ptr)) i++;
+            if(ptr[0] == '$'){
+                ptr = getenv(ptr+1);
+            }      
+            printf("%s ", ptr);
+        }
+        else break;
+    }
+
+    printf("\n");
+}
+
+void cambiar_dir(char* dir){
+
 }
