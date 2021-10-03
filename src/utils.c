@@ -16,7 +16,7 @@ int read_text_file(char *directory, int size, char *buffer)
     while ((leer = fread(buffer, size, 1, fptr)) > 0);
 
     fclose(fptr); 
-
+    
     return 0;
 }
 

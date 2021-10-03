@@ -4,7 +4,6 @@
 int main(int argc, char **argv){
     
     int next_option;
-    int h = 0;
     
     const char* const short_options = "h"; 
 
@@ -13,47 +12,41 @@ int main(int argc, char **argv){
     { NULL, 0, NULL, 0 } 
     };
 
-    do
-    {
-        next_option = getopt_long(argc, argv, short_options, long_options, NULL);
-        switch (next_option)
-        {
-        case 'h': 
-            h = 1;
-            break;
-        case '?': 
-            break;
-        case -1: 
-            break;
-        default: 
-            printf("Unexpected error.\n");
-            return 1;
-        }
-    }while (next_option != -1); 
     
-    if(h){
-        help_menu();
+    if(argc == 2){
+        next_option = getopt_long(argc, argv, short_options, long_options, NULL);
+        if(next_option == 'h'){
+            help_menu(stdout, 0);
+        }
+        else{
+            leer_batchfile(argv[1]);
+        }
     }
+    else{
+        char username[32];
+        char hostname[32];
+        char path[256];
+        char user_input[50];
 
-    char username[32];
-    char hostname[32];
-    char path[256];
-    char user_input[50];
+        while(1) {
+            print_cmdline_prompt(username, hostname, path);
+            
+            fgets(user_input, 50, stdin);
 
-    while(1) {
-        print_cmdline_prompt(username, hostname, path);
-        
-        fgets(user_input, 50, stdin);
-        reemplazar_char(user_input, '\n');
-        identificar_cmd(user_input);
+            reemplazar_char(user_input, '\n');
+            identificar_cmd(user_input);
+        }
     }
 
     return 0;
 }
 
-void help_menu(){
-    
-    printf("-h --help       Despliega el menú de ayuda\n");
+void help_menu(FILE* stream, int exit_code){
+    fprintf(stream, 
+            "-h --help          Despliega el menú de ayuda.\n"
+            "FILENAME           Ejecuta comandos desde batch file.\n"
+            "no args            Espera por inputs del usuario.\n");
+    exit(exit_code);
 }
 
 int get_username(char* dst){
@@ -84,12 +77,16 @@ int get_hostname(char* dst){
 int get_current_path(char* dst){
 
     char *path = getenv("PWD");
-    int offset = strlen(getenv("HOME"));
-    path = path + offset;
 
     if(path == NULL){
         printf("Error al buscar el path actual.\n");
         exit(-1);
+    }
+
+    char *home = getenv("HOME");
+    int offset = strlen(home);
+    if(strncmp(home, path, offset) == 0){
+        path = path + offset;
     }
 
     strcpy(dst, path);
@@ -125,8 +122,11 @@ void identificar_cmd(char* cmd){
     }
 }
 
-void invocar(char* program){
+int invocar(char* program){
 
+
+
+    return 0;
 }
 
 void eco(char* cmd){
@@ -158,26 +158,29 @@ void eco(char* cmd){
     printf("\n");
 }
 
-void cambiar_dir(char* dir){
+int cambiar_dir(char* dir){
     char* viejo = getenv("PWD");
 
     if(strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){
         char* nuevo = getenv("OLDPWD");
         if(nuevo != NULL){
-            if(setenv("PWD", viejo, 1) == 0){
+            if(setenv("PWD", nuevo, 1) == 0){
                 setenv("OLDPWD", viejo, 1);
             }
             else{
                 fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
+                return 1;
             }
         }
         else{
             fprintf(stderr, "ERROR: Oldpwd not set.\n");
+            return 1;
         }
     }
     else{
         if(chdir(dir) != 0){
             fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
+            return 1;
         }
         else{
             char buf[256];
@@ -190,7 +193,31 @@ void cambiar_dir(char* dir){
             }
             else{
                 fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
+                return 1;
             }
         }
     }
+
+    return 0;
+}
+
+int leer_batchfile(char* file){
+    FILE *fp;
+    fp = fopen(file,"r");
+    if(fp == NULL){
+        fprintf(stderr, "ERROR: no se pudo abrir %s", file);
+        help_menu(stderr, 1);
+    }
+
+    char cmd[100];
+
+    while(fgets(cmd, sizeof(cmd), fp) !=NULL)
+    {
+        reemplazar_char(cmd, '\n');
+        identificar_cmd(cmd);
+    }
+
+    fclose(fp);
+
+    return 0;
 }

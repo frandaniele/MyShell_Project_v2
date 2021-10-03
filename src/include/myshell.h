@@ -13,7 +13,7 @@
 */
 
 /* Muestra un menu de ayuda */
-void help_menu();
+void help_menu(FILE* stream, int exit_code);
 
 /* Obtienen los datos del usuario que está ejecutando la shell 
    y se los pasan a un string */
@@ -28,10 +28,13 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path);
 void identificar_cmd(char* cmd);
 
 /* Invoca (o trata) el input del usuario que no es un cmd interno  */
-void invocar(char* program);
+int invocar(char* program);
 
 /* Simil a comando echo de Linux  */
 void eco(char* cmd);
 
 /* Cambia el directorio actual */
-void cambiar_dir(char* dir);
+int cambiar_dir(char* dir);
+
+/* Lee instrucciones secuenciales desde un batch file */
+int leer_batchfile(char* file);
