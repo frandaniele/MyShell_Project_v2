@@ -2,18 +2,15 @@
 #include "include/utils.h"
 
 int main(int argc, char **argv){
-    
-    int next_option;
-    
     const char* const short_options = "h"; 
 
     const struct option long_options[] = {
     { "help", 0, NULL, 'h' },
     { NULL, 0, NULL, 0 } 
     };
-
     
     if(argc == 2){
+        int next_option;
         next_option = getopt_long(argc, argv, short_options, long_options, NULL);
         if(next_option == 'h'){
             help_menu(stdout, 0);
@@ -50,13 +47,12 @@ void help_menu(FILE* stream, int exit_code){
 }
 
 int get_username(char* dst){
-
-    strcpy(dst,getenv("USERNAME"));
-
-    if(dst == NULL){
-        printf("Error al buscar el username.\n");
+    char *username = getenv("USERNAME");
+    if(username == NULL){
+        fprintf(stderr, "ERROR: username no encontrado.\n");
         exit(-1);
     }
+    strcpy(dst, username);
 
     return 0;
 }
@@ -123,8 +119,17 @@ void identificar_cmd(char* cmd){
 }
 
 int invocar(char* program){
+    pid_t pid = fork();
 
-
+    switch(pid){
+        case -1:
+            fprintf(stderr, "ERROR: fork");
+            exit(1);
+        case 0:
+            /* child */
+        default:
+            /* parent */
+    }
 
     return 0;
 }
@@ -143,7 +148,7 @@ void eco(char* cmd){
     }
 
     while(ptr != NULL){
-        char* ptr = strtok(NULL, " ");
+        ptr = strtok(NULL, " ");
         if(ptr != NULL){
             i = 0;
             while(isspace(*ptr)) i++;
