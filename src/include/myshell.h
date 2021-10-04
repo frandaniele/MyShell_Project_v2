@@ -3,7 +3,7 @@
 #include <string.h>
 #include <getopt.h>
 #include<unistd.h> 
-#include <sys/types.h>
+#include <sys/wait.h>
 
 /**
   @file myshell.h
@@ -39,3 +39,6 @@ int cambiar_dir(char* dir);
 
 /* Lee instrucciones secuenciales desde un batch file */
 int leer_batchfile(char* file);
+
+/* Detecta el ampersand que determina la ejecucion en 2do plano */
+int identificar_seg_plano(char* str);

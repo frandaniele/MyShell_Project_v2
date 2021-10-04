@@ -119,16 +119,46 @@ void identificar_cmd(char* cmd){
 }
 
 int invocar(char* program){
-    pid_t pid = fork();
+    const int MAX_ARGS = 10;
 
-    switch(pid){
-        case -1:
-            fprintf(stderr, "ERROR: fork");
-            exit(1);
-        case 0:
-            /* child */
-        default:
-            /* parent */
+    //int child_status;
+
+    int i = 1;
+    char *arg_list[MAX_ARGS];
+
+    char *ptr = strtok(program, " ");
+    program = ptr;
+    arg_list[0] = program;
+
+    while(ptr != NULL && i < MAX_ARGS){
+        ptr = strtok(NULL, " ");
+        if(ptr != NULL){
+            arg_list[i] = ptr;
+            i++;
+        }
+    }
+
+    // for(int j = 0; j < i; j++){
+    //     printf("arg: %s\n", arg_list[j]);
+    // }
+
+    //spawn(program, arg_list);
+    if(identificar_seg_plano(arg_list[i-1])){
+        //Ejecuto en 2do plano
+        printf("Segundo plano\n");
+    }
+    else{
+        //Ejecuto en 1er plano
+        printf("Primer plano\n");
+       /* wait(&child_status);
+	
+        if (WIFEXITED (child_status)){
+            printf ("the child process exited normally, with exit code %d\n",
+            WEXITSTATUS (child_status));
+        }
+        else{
+            printf ("the child process exited abnormally\n");
+        }*/
     }
 
     return 0;
@@ -224,5 +254,15 @@ int leer_batchfile(char* file){
 
     fclose(fp);
 
+    return 0;
+}
+
+/*  Esta funcion devuelve 1 si encuentra '&' y lo reemplaza por '\0'. 
+    Caso contrario devuelve 0.  */
+int identificar_seg_plano(char* str){
+    if(strchr(str, '&') != NULL){
+        reemplazar_char(str, '&');
+        return 1;
+    }
     return 0;
 }

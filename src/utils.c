@@ -33,7 +33,34 @@ char* busca_palabras(char* str, char* separator, int n)
 void reemplazar_char(char* string, char ch){
     char *reemplazado;
 
-    if ((reemplazado=strchr(string, ch)) != NULL){
+    if((reemplazado=strchr(string, ch)) != NULL){
         *reemplazado = '\0';
     }
 }
+
+//int spawn(char* program, char** arg_list){
+//    const int N_PATHS = 5;
+//	pid_t child_pid;
+//
+//    char paths[N_PATHS][32] = { "/bin", 
+//                                "/usr/bin",
+//                                "/usr/local/bin",
+//                                "/usr/games",
+//                                "/usr/local/games"};
+//
+//	/* Duplicate this process. */
+//	child_pid = fork();
+//
+//	if (child_pid != 0){
+//		return child_pid;
+//	}
+//	else{
+//        for(int i = 0; i < N_PATHS; i++){
+//		    execl(program, arg_list, (char*) NULL);
+//        }
+//		
+//		/* returns only if an error occurs. */
+//		fprintf (stderr, "an error occurred in execvp\n");
+//		exit(1);
+//	}
+//}

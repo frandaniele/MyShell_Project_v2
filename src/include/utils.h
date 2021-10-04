@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /**
   @file utils.h
@@ -21,3 +23,6 @@ char* busca_palabras(char* str, char* separator, int n);
 
 /* Reemplaza ch de string por '\0' */
 void reemplazar_char(char* string, char ch);
+
+/* Crea un proceso imagen y ejecuta program */
+int spawn(char* program, char** arg_list);
