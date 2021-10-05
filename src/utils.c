@@ -38,29 +38,29 @@ void reemplazar_char(char* string, char ch){
     }
 }
 
-//int spawn(char* program, char** arg_list){
-//    const int N_PATHS = 5;
-//	pid_t child_pid;
-//
-//    char paths[N_PATHS][32] = { "/bin", 
-//                                "/usr/bin",
-//                                "/usr/local/bin",
-//                                "/usr/games",
-//                                "/usr/local/games"};
-//
-//	/* Duplicate this process. */
-//	child_pid = fork();
-//
-//	if (child_pid != 0){
-//		return child_pid;
-//	}
-//	else{
-//        for(int i = 0; i < N_PATHS; i++){
-//		    execl(program, arg_list, (char*) NULL);
-//        }
-//		
-//		/* returns only if an error occurs. */
-//		fprintf (stderr, "an error occurred in execvp\n");
-//		exit(1);
-//	}
-//}
+int spawn(char* program, char** arg_list){
+	pid_t child_pid;
+
+	/* Duplicate this process. */
+	child_pid = fork();
+
+	if (child_pid != 0){
+		return child_pid;
+	}
+	else{
+        char paths[5][64] = {   "/bin", 
+                                "/usr/bin",
+                                "/usr/local/bin",
+                                "/usr/games",
+                                "/usr/local/games"};
+                                
+        for(int i = 0; i < 5; i++){
+            strcat(paths[i],program);
+            printf("lo llamo con %s\n", paths[i]);
+		    execl(paths[i], program, (char*) NULL);
+        }
+		/* returns only if an error occurs. */
+		fprintf (stderr, "El programa %s no fue encontrado\n", program);
+		abort();
+	}
+}

@@ -121,15 +121,19 @@ void identificar_cmd(char* cmd){
 int invocar(char* program){
     const int MAX_ARGS = 10;
 
-    //int child_status;
+    int child_status;
 
     int i = 1;
     char *arg_list[MAX_ARGS];
 
     char *ptr = strtok(program, " ");
-    program = ptr;
-    arg_list[0] = program;
 
+    if(ptr[0] != '/'){
+        char aux[64] = "/";
+        program = strcat(aux, ptr);
+    }
+
+    arg_list[0] = program;
     while(ptr != NULL && i < MAX_ARGS){
         ptr = strtok(NULL, " ");
         if(ptr != NULL){
@@ -138,27 +142,15 @@ int invocar(char* program){
         }
     }
 
-    // for(int j = 0; j < i; j++){
-    //     printf("arg: %s\n", arg_list[j]);
-    // }
-
-    //spawn(program, arg_list);
-    if(identificar_seg_plano(arg_list[i-1])){
+    int segundo_plano = identificar_seg_plano(arg_list[i-1]);
+    pid_t child_pid = spawn(program, arg_list);
+    if(segundo_plano){
         //Ejecuto en 2do plano
-        printf("Segundo plano\n");
+        return 0;
     }
     else{
         //Ejecuto en 1er plano
-        printf("Primer plano\n");
-       /* wait(&child_status);
-	
-        if (WIFEXITED (child_status)){
-            printf ("the child process exited normally, with exit code %d\n",
-            WEXITSTATUS (child_status));
-        }
-        else{
-            printf ("the child process exited abnormally\n");
-        }*/
+        waitpid(child_pid, &child_status, 0);
     }
 
     return 0;
