@@ -101,24 +101,27 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
 void identificar_cmd(char* cmd){
     while(isspace(*cmd)) cmd++;
 
-    if(strcmp(cmd, "quit") == 0){
+    if(strcmp(cmd, "quit") == 0 || strncmp(cmd, "quit ", 5) == 0 || strncmp("quit\t", cmd, 5) == 0){
         exit(0);
     }
-    else if(strcmp("clr", cmd) == 0){
+    else if(strcmp(cmd, "clr") == 0 || strncmp("clr ", cmd, 4) == 0 || strncmp("clr\t", cmd, 4) == 0){
         printf("\033[1;1H\033[2J"); //https://www.geeksforgeeks.org/clear-console-c-language/ y cambio /e por /33
     }
-    else if(strncmp("cd ", cmd, 3) == 0 || strncmp("cd\t", cmd, 3) == 0){
+    else if(strcmp(cmd, "cd") == 0 || strncmp("cd ", cmd, 3) == 0 || strncmp("cd\t", cmd, 3) == 0){
         cambiar_dir(cmd+3); //offset de 3 char para pasar solo argumento de llamada
     }
-    else if(strncmp("echo ", cmd, 5) == 0 || strncmp("echo\t", cmd, 5) == 0){
+    else if(strcmp(cmd, "echo") == 0 || strncmp("echo ", cmd, 5) == 0 || strncmp("echo\t", cmd, 5) == 0){
         eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
     }
+    else if(strcmp(cmd, "") == 0){}
     else{
         invocar(cmd);
     }
 }
 
 int invocar(char* program){
+    while(isspace(*program)) program++;
+
     const int MAX_ARGS = 10;
 
     int child_status;
@@ -157,38 +160,46 @@ int invocar(char* program){
 }
 
 void eco(char* cmd){
-    int i;
+    while(isspace(*cmd)) cmd++;
+    
+    if(strcmp(cmd, "")){
+        int i;
 
-    char* ptr = strtok(cmd, " ");
-    if(ptr != NULL){
-        i = 0;
-        while(isspace(*ptr)) i++;
-        if(ptr[i] == '$'){
-            ptr = getenv(ptr+1);
-        }
-        printf("%s ", ptr);
-    }
-
-    while(ptr != NULL){
-        ptr = strtok(NULL, " ");
+        char* ptr = strtok(cmd, " ");
         if(ptr != NULL){
             i = 0;
             while(isspace(*ptr)) i++;
             if(ptr[i] == '$'){
                 ptr = getenv(ptr+1);
-            }      
+            }
             printf("%s ", ptr);
         }
-        else break;
+
+        while(ptr != NULL){
+            ptr = strtok(NULL, " ");
+            if(ptr != NULL){
+                i = 0;
+                while(isspace(*ptr)) i++;
+                if(ptr[i] == '$'){
+                    ptr = getenv(ptr+1);
+                }      
+                printf("%s ", ptr);
+            }
+            else break;
+        }
     }
 
     printf("\n");
 }
 
 int cambiar_dir(char* dir){
+    while(isspace(*dir)) dir++;
+
+    if(strcmp(dir,"") == 0) return 0;
+
     char* viejo = getenv("PWD");
 
-    if(strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){
+    if(strncmp(dir,"-\t", 2) == 0 || strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){
         char* nuevo = getenv("OLDPWD");
         if(nuevo != NULL){
             if(setenv("PWD", nuevo, 1) == 0){
@@ -236,7 +247,7 @@ int leer_batchfile(char* file){
         help_menu(stderr, 1);
     }
 
-    char cmd[100];
+    char cmd[128];
 
     while(fgets(cmd, sizeof(cmd), fp) !=NULL)
     {
