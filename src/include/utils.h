@@ -21,5 +21,17 @@ int read_text_file(char *directory, int size, char *buffer);
 /* Reemplaza ch de string por '\0' */
 void reemplazar_char(char* string, char ch);
 
+/* Muestra un menu de ayuda */
+void help_menu(FILE* stream, int exit_code);
+
+/* Obtienen los datos del usuario que está ejecutando la shell 
+   y se los pasan a un string */
+void get_username(char* dst);
+void get_hostname(char* dst);
+void get_current_path(char* dst);
+
 /* Crea un proceso imagen y ejecuta program */
 int spawn(char* program, char** arg_list);
+
+/* Detecta el ampersand que determina la ejecucion en 2do plano */
+int identificar_seg_plano(char* str);

@@ -4,11 +4,10 @@
 int main(int argc, char **argv){
     const char* const short_options = "h"; 
 
-    const struct option long_options[] = {
-    { "help", 0, NULL, 'h' },
-    { NULL, 0, NULL, 0 } 
-    };
-    
+    const struct option long_options[] = {  { "help", 0, NULL, 'h' },
+                                            { NULL, 0, NULL, 0 } 
+                                            };
+                                                
     if(argc == 2){
         int next_option;
         next_option = getopt_long(argc, argv, short_options, long_options, NULL);
@@ -38,58 +37,6 @@ int main(int argc, char **argv){
     return 0;
 }
 
-void help_menu(FILE* stream, int exit_code){
-    fprintf(stream, 
-            "-h --help          Despliega el menú de ayuda.\n"
-            "FILENAME           Ejecuta comandos desde batch file.\n"
-            "no args            Espera por inputs del usuario.\n");
-    exit(exit_code);
-}
-
-int get_username(char* dst){
-    char *username = getenv("USERNAME");
-    if(username == NULL){
-        fprintf(stderr, "ERROR: username no encontrado.\n");
-        exit(-1);
-    }
-    strcpy(dst, username);
-
-    return 0;
-}
-
-int get_hostname(char* dst){
-
-    read_text_file("/proc/sys/kernel/hostname", 32, dst);
-
-    dst = strtok(dst, "\n");
-    if(dst == NULL){
-        printf("Error al buscar el hostname.\n");
-        exit(-1);
-    }
-
-    return 0;
-}
-
-int get_current_path(char* dst){
-
-    char *path = getenv("PWD");
-
-    if(path == NULL){
-        printf("Error al buscar el path actual.\n");
-        exit(-1);
-    }
-
-    char *home = getenv("HOME");
-    int offset = strlen(home);
-    if(strncmp(home, path, offset) == 0){
-        path = path + offset;
-    }
-
-    strcpy(dst, path);
-
-    return 0;
-}
-
 void print_cmdline_prompt(char* username, char* hostname, char* current_path){
     get_username(username);
     get_hostname(hostname);
@@ -102,10 +49,11 @@ void identificar_cmd(char* cmd){
     while(isspace(*cmd)) cmd++;
 
     if(strcmp(cmd, "quit") == 0 || strncmp(cmd, "quit ", 5) == 0 || strncmp("quit\t", cmd, 5) == 0){
+        printf("Hasta luego. Gracias por utilizar mi shell :p\n");
         exit(0);
     }
     else if(strcmp(cmd, "clr") == 0 || strncmp("clr ", cmd, 4) == 0 || strncmp("clr\t", cmd, 4) == 0){
-        printf("\033[1;1H\033[2J"); //https://www.geeksforgeeks.org/clear-console-c-language/ y cambio /e por /33
+        printf("\033[3J\033[H\033[2J"); //https://unix.stackexchange.com/questions/124762/how-does-clear-command-work y cambio /e por /33
     }
     else if(strcmp(cmd, "cd") == 0 || strncmp("cd ", cmd, 3) == 0 || strncmp("cd\t", cmd, 3) == 0){
         cambiar_dir(cmd+3); //offset de 3 char para pasar solo argumento de llamada
@@ -224,7 +172,7 @@ int cambiar_dir(char* dir){
             char buf[256];
             if(getcwd(buf, 256) == NULL){
                 fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
-                exit(-1);
+                help_menu(stderr, 1);
             }
             if(setenv("PWD", buf, 1) == 0){
                 setenv("OLDPWD", viejo, 1);
@@ -243,7 +191,7 @@ int leer_batchfile(char* file){
     FILE *fp;
     fp = fopen(file,"r");
     if(fp == NULL){
-        fprintf(stderr, "ERROR: no se pudo abrir %s", file);
+        fprintf(stderr, "ERROR: no se pudo abrir %s\n", file);
         help_menu(stderr, 1);
     }
 
@@ -257,15 +205,5 @@ int leer_batchfile(char* file){
 
     fclose(fp);
 
-    return 0;
-}
-
-/*  Esta funcion devuelve 1 si encuentra '&' y lo reemplaza por '\0'. 
-    Caso contrario devuelve 0.  */
-int identificar_seg_plano(char* str){
-    if(strchr(str, '&') != NULL){
-        reemplazar_char(str, '&');
-        return 1;
-    }
     return 0;
 }
