@@ -69,7 +69,6 @@ void get_current_path(char* dst){
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
-    static int job = 1;
 	pid_t child_pid;
     int child_status;
 
@@ -81,56 +80,32 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             fprintf(stderr, "ERROR: fork");
             exit(1);
         case 0: ;
-            char paths[5][64] = {   "/bin", 
+            char paths[5][128] = {  "/bin", 
                                     "/usr/bin",
                                     "/usr/local/bin",
                                     "/usr/games",
                                     "/usr/local/games"};
-
-            job++;
-
             /* busco en paths estandar  */                        
             for(int i = 0; i < 5; i++){
                 strcat(paths[i],program);
-                if(cant_args == 1){
-                    execl(paths[i], program, (char*) NULL);
-                }
-                if(cant_args == 2){
-                    execl(paths[i], program, arg_list[1], (char*) NULL);
-                }
-                if(cant_args == 3){
-                    execl(paths[i], program, arg_list[1], arg_list[2], (char*) NULL);
-                }
-                if(cant_args == 4){
-                    execl(paths[i], program, arg_list[1], arg_list[2], arg_list[3], (char*) NULL);
-                }
+                ejecutar(program, arg_list, cant_args, paths[i]);
             }
 
             /* busco en el path que me encuentro   */
             char path_actual[128];
             get_current_path(path_actual);
             strcat(path_actual,program);
-            if(cant_args == 1){
-                execl(path_actual, program, (char*) NULL);
-            }
-            if(cant_args == 2){
-                execl(path_actual, program, arg_list[1], (char*) NULL);
-            }
-            if(cant_args == 3){
-                execl(path_actual, program, arg_list[1], arg_list[2], (char*) NULL);
-            }	
-            if(cant_args == 4){
-                execl(path_actual, program, arg_list[1], arg_list[2], arg_list[3], (char*) NULL);
-            }	
+            ejecutar(program, arg_list, cant_args, path_actual);
             
             /* returns only if an error occurs. */
             fprintf(stderr, "El programa %s no fue encontrado\n", program);
-            job--;
             exit(1);
         default:
             if(segundo_plano){
                 //Ejecuto en 2do plano
-                printf("[%i] %i\n", job, child_pid);                
+                static int job = 1;
+                printf("[%i] %i\n", job, child_pid);  
+                job++;     
             }
             else{
                 //Ejecuto en 1er plano
@@ -138,6 +113,21 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             }
     }
     return 0;
+}
+
+void ejecutar(char* program, char** arg_list, int cant_args, char* path){
+    if(cant_args == 1){
+        execl(path, program, (char*) NULL);
+    }
+    if(cant_args == 2){
+        execl(path, program, arg_list[1], (char*) NULL);
+    }
+    if(cant_args == 3){
+        execl(path, program, arg_list[1], arg_list[2], (char*) NULL);
+    }	
+    if(cant_args == 4){
+        execl(path, program, arg_list[1], arg_list[2], arg_list[3], (char*) NULL);
+    }	
 }
 
 /*  Esta funcion devuelve 1 si encuentra '&' y lo reemplaza por '\0'. 

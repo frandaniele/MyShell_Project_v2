@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 /**
   @file utils.h
@@ -36,3 +37,6 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args);
 
 /* Detecta el ampersand que determina la ejecucion en 2do plano */
 int identificar_seg_plano(char* str);
+
+/* Ejecuta el programa  */
+void ejecutar(char* program, char** arg_list, int cant_args, char* path);

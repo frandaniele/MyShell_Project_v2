@@ -45,10 +45,15 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
     char *home = getenv("HOME");
     int offset = strlen(home);
     if(strncmp(home, current_path, offset) == 0){
-        current_path = current_path + offset;
+        if(strcmp(home,current_path) == 0){
+            current_path = "~";
+        }
+        else{
+            current_path = current_path + offset;
+        }
     }
 
-    printf("%s@%s:~%s$ ", username, hostname, current_path);
+    printf("%s@%s:%s$ ", username, hostname, current_path);
 }
 
 void identificar_cmd(char* cmd){
@@ -82,7 +87,6 @@ int invocar(char* program){
     char *arg_list[MAX_ARGS];
 
     char *ptr = strtok(program, " ");
-
     if(ptr[0] != '/'){
         char aux[64] = "/";
         program = strcat(aux, ptr);
@@ -148,6 +152,7 @@ int cambiar_dir(char* dir){
         if(nuevo != NULL){
             if(setenv("PWD", nuevo, 1) == 0){
                 setenv("OLDPWD", viejo, 1);
+                printf("%s\n", nuevo);
             }
             else{
                 fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
