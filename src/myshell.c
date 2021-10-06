@@ -76,7 +76,7 @@ void identificar_cmd(char* cmd){
 int invocar(char* program){
     while(isspace(*program)) program++;
 
-    const int MAX_ARGS = 10;
+    const int MAX_ARGS = 4;
 
     int i = 1;
     char *arg_list[MAX_ARGS];
@@ -98,7 +98,7 @@ int invocar(char* program){
     }
 
     int segundo_plano = identificar_seg_plano(arg_list[i-1]);
-    spawn(program, arg_list, segundo_plano);
+    spawn(program, arg_list, segundo_plano, i);
 
     return 0;
 }
