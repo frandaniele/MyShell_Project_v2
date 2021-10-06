@@ -65,39 +65,52 @@ void get_current_path(char* dst){
         help_menu(stderr, 1);
     }
 
-    char *home = getenv("HOME");
-    int offset = strlen(home);
-    if(strncmp(home, path, offset) == 0){
-        path = path + offset;
-    }
-
     strcpy(dst, path);
 }
 
-int spawn(char* program, char** arg_list){
+int spawn(char* program, char** arg_list, int segundo_plano){
 	pid_t child_pid;
+    int child_status;
 
 	/* Duplicate this process. */
 	child_pid = fork();
 
-	if (child_pid != 0){
-		return child_pid;
-	}
-	else{
-        char paths[5][64] = {   "/bin", 
-                                "/usr/bin",
-                                "/usr/local/bin",
-                                "/usr/games",
-                                "/usr/local/games"};
-                                
-        for(int i = 0; i < 5; i++){
-            strcat(paths[i],program);
-		    execl(paths[i], program, (char*) NULL);
-        }
-		/* returns only if an error occurs. */
-		fprintf (stderr, "El programa %s no fue encontrado\n", program);
-        exit(1);
-	}
+    switch(child_pid){
+        case -1:
+            fprintf(stderr, "ERROR: fork");
+            exit(1);
+        case 0: ;
+            char paths[5][64] = {   "/bin", 
+                                    "/usr/bin",
+                                    "/usr/local/bin",
+                                    "/usr/games",
+                                    "/usr/local/games"};
+
+            /* busco en paths estandar  */                        
+            for(int i = 0; i < 5; i++){
+                strcat(paths[i],program);
+                execl(paths[i], program, (char*) NULL);
+            }
+            /* busco en el path que me encuentro   */
+            char path_actual[128];
+            get_current_path(path_actual);
+            strcat(path_actual,program);
+            execl(path_actual, program, (char*) NULL);		
+            
+            /* returns only if an error occurs. */
+            fprintf (stderr, "El programa %s no fue encontrado\n", program);
+            exit(1);
+        default:
+            if(segundo_plano){
+                //Ejecuto en 2do plano
+                segundo_plano_info(child_pid);
+            }
+            else{
+                //Ejecuto en 1er plano
+                waitpid(child_pid, &child_status, 0);
+            }
+    }
+    return 0;
 }
 
 /*  Esta funcion devuelve 1 si encuentra '&' y lo reemplaza por '\0'. 
@@ -108,4 +121,12 @@ int identificar_seg_plano(char* str){
         return 1;
     }
     return 0;
+}
+
+void segundo_plano_info(pid_t pid){
+    static int job = 1;
+    printf("[%i] %i\n", job, pid);
+    job++;
+    //waitpid(pid, NULL, 0);
+    //job--;
 }

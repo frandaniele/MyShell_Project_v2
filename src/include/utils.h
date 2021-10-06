@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 /**
   @file utils.h
@@ -31,7 +32,10 @@ void get_hostname(char* dst);
 void get_current_path(char* dst);
 
 /* Crea un proceso imagen y ejecuta program */
-int spawn(char* program, char** arg_list);
+int spawn(char* program, char** arg_list, int segundo_plano);
 
 /* Detecta el ampersand que determina la ejecucion en 2do plano */
 int identificar_seg_plano(char* str);
+
+/* Imprime informacion del proceso ejecutando en 2do plano  */
+void segundo_plano_info(pid_t pid);

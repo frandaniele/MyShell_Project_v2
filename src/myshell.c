@@ -42,6 +42,12 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
     get_hostname(hostname);
     get_current_path(current_path);
 
+    char *home = getenv("HOME");
+    int offset = strlen(home);
+    if(strncmp(home, current_path, offset) == 0){
+        current_path = current_path + offset;
+    }
+
     printf("%s@%s:~%s$ ", username, hostname, current_path);
 }
 
@@ -72,8 +78,6 @@ int invocar(char* program){
 
     const int MAX_ARGS = 10;
 
-    int child_status;
-
     int i = 1;
     char *arg_list[MAX_ARGS];
 
@@ -94,15 +98,7 @@ int invocar(char* program){
     }
 
     int segundo_plano = identificar_seg_plano(arg_list[i-1]);
-    pid_t child_pid = spawn(program, arg_list);
-    if(segundo_plano){
-        //Ejecuto en 2do plano
-        return 0;
-    }
-    else{
-        //Ejecuto en 1er plano
-        waitpid(child_pid, &child_status, 0);
-    }
+    spawn(program, arg_list, segundo_plano);
 
     return 0;
 }

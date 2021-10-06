@@ -7,6 +7,13 @@ echo Como viste, seguís en $PWD . Ahora vas a ir a /home
 cd /home
 echo Estás en $PWD . Ahora volverás al directorio anterior.
 cd -
-echo Estás en $PWD . Hasta acá llegamos, chau!
+echo Estás en $PWD .
+echo Ahora vas a invocar un programa en 2do plano
+src/bin/app&
+echo Como ves, puedes seguir ingresando comandos y se ejecutan inmediatamente
+echo Ahora, invocas el mismo programa en primer plano
+src/bin/app
+echo Este mensaje lo verás cuando termine de ejecutarse el programa anterior
+echo Hasta acá llegamos, chau!
 quit
 echo Esto nunca será ejecutado
