@@ -80,12 +80,16 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             fprintf(stderr, "ERROR: fork");
             exit(1);
         case 0: ;
+            /* pruebo path absoluto */
+            ejecutar(arg_list[0], arg_list, cant_args, program);
+
+            /* busco en paths estandar  */  
             char paths[5][128] = {  "/bin", 
                                     "/usr/bin",
                                     "/usr/local/bin",
                                     "/usr/games",
                                     "/usr/local/games"};
-            /* busco en paths estandar  */                        
+                                  
             for(int i = 0; i < 5; i++){
                 strcat(paths[i],program);
                 ejecutar(program, arg_list, cant_args, paths[i]);
@@ -100,10 +104,11 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             /* returns only if an error occurs. */
             fprintf(stderr, "El programa %s no fue encontrado\n", program);
             exit(1);
-        default:
+        default:    ;
+            static int job = 1;
+            while(waitpid(-1, NULL, WNOHANG)>0) job--;
             if(segundo_plano){
                 //Ejecuto en 2do plano
-                static int job = 1;
                 printf("[%i] %i\n", job, child_pid);  
                 job++;     
             }

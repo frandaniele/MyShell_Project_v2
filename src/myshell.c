@@ -22,12 +22,12 @@ int main(int argc, char **argv){
         char username[32];
         char hostname[32];
         char path[256];
-        char user_input[50];
+        char user_input[256];
 
         while(1) {
             print_cmdline_prompt(username, hostname, path);
             
-            fgets(user_input, 50, stdin);
+            fgets(user_input, 256, stdin);
 
             reemplazar_char(user_input, '\n');
             identificar_cmd(user_input);
@@ -86,13 +86,16 @@ int invocar(char* program){
     int i = 1;
     char *arg_list[MAX_ARGS];
 
+    char aux[256] = "";
+
     char *ptr = strtok(program, " ");
     if(ptr[0] != '/'){
-        char aux[64] = "/";
-        program = strcat(aux, ptr);
+        aux[0] = '/';
+        strcat(aux, ptr);
+        program = aux;
     }
 
-    arg_list[0] = program;
+    arg_list[0] = (char*)(strrchr(program, '/')+1);
     while(ptr != NULL && i < MAX_ARGS){
         ptr = strtok(NULL, " ");
         if(ptr != NULL){
@@ -196,7 +199,7 @@ int leer_batchfile(char* file){
         help_menu(stderr, 1);
     }
 
-    char cmd[128];
+    char cmd[256];
 
     while(fgets(cmd, sizeof(cmd), fp) !=NULL)
     {
