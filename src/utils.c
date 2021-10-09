@@ -1,7 +1,6 @@
 #include "include/utils.h"
 
-int read_text_file(char *directory, int size, char *buffer)
-{
+int read_text_file(char *directory, int size, char *buffer){
     FILE *fptr;
     
     if ((fptr = fopen(directory, "rb")) == NULL)
@@ -12,7 +11,6 @@ int read_text_file(char *directory, int size, char *buffer)
     }
 
     int leer = 0;
-
     while ((leer = fread(buffer, size, 1, fptr)) > 0);
 
     fclose(fptr); 
@@ -36,17 +34,16 @@ void help_menu(FILE* stream, int exit_code){
     exit(exit_code);
 }
 
-void get_username(char* dst){
-    char *username = getenv("USERNAME");
-    if(username == NULL){
-        fprintf(stderr, "ERROR: username no encontrado.\n");
+void get_env_var(char* dst, char* var){
+    char *ptr = getenv(var);
+    if(ptr == NULL){
+        fprintf(stderr, "ERROR: %s no encontrado.\n", var);
         help_menu(stderr, 1);
     }
-    strcpy(dst, username);
+    strcpy(dst, ptr);
 }
 
 void get_hostname(char* dst){
-
     read_text_file("/proc/sys/kernel/hostname", 32, dst);
 
     dst = strtok(dst, "\n");
@@ -54,18 +51,6 @@ void get_hostname(char* dst){
         fprintf(stderr, "Error al buscar el hostname.\n");
         help_menu(stderr, 1);
     }
-}
-
-void get_current_path(char* dst){
-
-    char *path = getenv("PWD");
-
-    if(path == NULL){
-        fprintf(stderr, "Error al buscar el path actual.\n");
-        help_menu(stderr, 1);
-    }
-
-    strcpy(dst, path);
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
@@ -97,7 +82,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
 
             /* busco en el path que me encuentro   */
             char path_actual[128];
-            get_current_path(path_actual);
+            get_env_var(path_actual, "PWD");
             strcat(path_actual,program);
             ejecutar(program, arg_list, cant_args, path_actual);
             

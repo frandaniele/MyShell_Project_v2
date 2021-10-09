@@ -41,9 +41,9 @@ int main(int argc, char **argv){
 }
 
 void print_cmdline_prompt(char* username, char* hostname, char* current_path){
-    get_username(username);
+    get_env_var(username, "USERNAME");
     get_hostname(hostname);
-    get_current_path(current_path);
+    get_env_var(current_path, "PWD");
 
     char *home = getenv("HOME");
     int offset = strlen(home);
@@ -82,34 +82,30 @@ void identificar_cmd(char* cmd){
 }
 
 int invocar(char* program){
-    while(isspace(*program)) program++;
-
     const int MAX_ARGS = 4;
-
     int i = 1;
     char *arg_list[MAX_ARGS];
-
     char aux[256] = "";
 
     char *ptr = strtok(program, " ");
-    if(ptr[0] != '/'){
+    if(ptr[0] != '/'){//chequeo si puse el path con '/' al principio, sino lo agrego
         aux[0] = '/';
         strcat(aux, ptr);
         program = aux;
     }
 
-    arg_list[0] = (char*)(strrchr(program, '/')+1);
-    while(ptr != NULL && i < MAX_ARGS){
+    arg_list[0] = (char*)(strrchr(program, '/')+1); //argumento que contiene el nombre del programa solo
+    while(ptr != NULL && i < MAX_ARGS){//guardo los demas argumentos, chequeo que no sean vacio
         ptr = strtok(NULL, " ");
-        if(ptr != NULL){
+        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
             arg_list[i] = ptr;
             i++;
         }
     }
 
     int segundo_plano = identificar_seg_plano(arg_list[i-1]);
-    if(strcmp(arg_list[i-1],"") == 0) i--;
-    spawn(program, arg_list, segundo_plano, i);
+    if(strcmp(arg_list[i-1],"") == 0) i--;//si llame con & separado lo identifico
+    spawn(program, arg_list, segundo_plano, i);//llamo funcion para ejecutar programa
 
     return 0;
 }
@@ -117,14 +113,14 @@ int invocar(char* program){
 void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
     
-    if(strcmp(cmd, "")){
+    if(strcmp(cmd, "")){//input = echo comentario|variable
         int i;
 
-        char* ptr = strtok(cmd, " ");
+        char* ptr = strtok(cmd, " ");//leo palabra a palabra
         if(ptr != NULL){
             i = 0;
-            while(isspace(*ptr)) i++;
-            if(ptr[i] == '$'){
+            while(isspace(*ptr)) i++;//elimino espacios
+            if(ptr[i] == '$'){//chequeo si es env var
                 ptr = getenv(ptr+1);
             }
             printf("%s ", ptr);
@@ -150,28 +146,28 @@ void eco(char* cmd){
 int cambiar_dir(char* dir){
     while(isspace(*dir)) dir++;
 
-    if(strcmp(dir,"") == 0) return 0;
+    if(strcmp(dir,"") == 0) return 0; //input = cd
 
     char* viejo = getenv("PWD");
 
-    if(strncmp(dir,"-\t", 2) == 0 || strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){
+    if(strncmp(dir,"-\t", 2) == 0 || strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){ //input = cd -
         char* nuevo = getenv("OLDPWD");
-        if(nuevo != NULL){
-            if(setenv("PWD", nuevo, 1) == 0){
-                setenv("OLDPWD", viejo, 1);
+        if(nuevo != NULL){  //oldpwd set
+            if(setenv("PWD", nuevo, 1) == 0){  //pwd = oldpwd
+                setenv("OLDPWD", viejo, 1); //oldpwd = pwd anterior
                 printf("%s\n", nuevo);
             }
-            else{
+            else{ //en caso de que setenv de error
                 fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
                 return 1;
             }
         }
-        else{
+        else{ //oldpwd not set
             fprintf(stderr, "ERROR: Oldpwd not set.\n");
             return 1;
         }
     }
-    else{
+    else{ //input = cd directorio
         if(chdir(dir) != 0){
             fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
             return 1;
@@ -182,7 +178,7 @@ int cambiar_dir(char* dir){
                 fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
                 help_menu(stderr, 1);
             }
-            if(setenv("PWD", buf, 1) == 0){
+            if(setenv("PWD", buf, 1) == 0){ //se pudo cambiar, cambio pwd y oldpwd
                 setenv("OLDPWD", viejo, 1);
             }
             else{
@@ -197,7 +193,7 @@ int cambiar_dir(char* dir){
 
 int leer_batchfile(char* file){
     FILE *fp;
-    fp = fopen(file,"r");
+    fp = fopen(file,"r"); //abro el batch file
     if(fp == NULL){
         fprintf(stderr, "ERROR: no se pudo abrir %s\n", file);
         help_menu(stderr, 1);
@@ -205,7 +201,7 @@ int leer_batchfile(char* file){
 
     char cmd[256];
 
-    while(fgets(cmd, sizeof(cmd), fp) !=NULL)
+    while(fgets(cmd, sizeof(cmd), fp) !=NULL)//leo los comandos linea a linea y ejecuto
     {
         reemplazar_char(cmd, '\n');
         identificar_cmd(cmd);

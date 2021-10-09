@@ -28,9 +28,8 @@ void help_menu(FILE* stream, int exit_code);
 
 /* Obtienen los datos del usuario que está ejecutando la shell 
    y se los pasan a un string */
-void get_username(char* dst);
+void get_env_var(char* dst, char* var);
 void get_hostname(char* dst);
-void get_current_path(char* dst);
 
 /* Crea un proceso imagen y ejecuta program */
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args);
