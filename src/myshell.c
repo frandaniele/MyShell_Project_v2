@@ -31,6 +31,9 @@ int main(int argc, char **argv){
 
             reemplazar_char(user_input, '\n');
             identificar_cmd(user_input);
+            
+            //posibilidad de limpiar zombies aca
+            //while(waitpid(-1, NULL, WNOHANG)>0) job--;
         }
     }
 
@@ -105,6 +108,7 @@ int invocar(char* program){
     }
 
     int segundo_plano = identificar_seg_plano(arg_list[i-1]);
+    if(strcmp(arg_list[i-1],"") == 0) i--;
     spawn(program, arg_list, segundo_plano, i);
 
     return 0;

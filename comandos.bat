@@ -11,9 +11,9 @@ echo Estás en $PWD .
 echo Ahora vas a invocar un programa en 2do plano
 src/bin/app&
 echo Como ves, puedes seguir ingresando comandos y se ejecutan inmediatamente
+ps &
 echo Ahora, invocas el mismo programa en primer plano
 src/bin/app
+ps
 echo Este mensaje lo verás cuando termine de ejecutarse el programa anterior
 echo Hasta acá llegamos, chau!
-quit
-echo Esto nunca será ejecutado

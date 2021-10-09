@@ -6,7 +6,7 @@ int read_text_file(char *directory, int size, char *buffer)
     
     if ((fptr = fopen(directory, "rb")) == NULL)
     {
-        printf("Error! opening file\n");
+        fprintf(stderr, "Error! opening file\n");
         // Program exits if the file pointer returns NULL.
         exit(-1);
     }
@@ -51,7 +51,7 @@ void get_hostname(char* dst){
 
     dst = strtok(dst, "\n");
     if(dst == NULL){
-        printf("Error al buscar el hostname.\n");
+        fprintf(stderr, "Error al buscar el hostname.\n");
         help_menu(stderr, 1);
     }
 }

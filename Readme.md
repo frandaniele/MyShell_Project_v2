@@ -1,8 +1,3 @@
-###TO-DO LIST:
-
--    limpiar zombies cuando no invoco programas  
--    revisar cuando llamo 2do plano con & separado
-
 # Laboratorio N4 - Francisco Daniele
 ## My Shell
 ### SOI - FCEFyN - UNC
