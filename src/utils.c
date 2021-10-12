@@ -1,96 +1,84 @@
 #include "include/utils.h"
 
-void append(struct Node** head_ref, pid_t pid){
-    /* 1. allocate node */
-    struct Node* new_node = (struct Node*) malloc(sizeof(struct Node));
+void append(Node** head_ref, pid_t pid){
+    Node* new_node = (Node*)malloc(sizeof(Node));
  
-    struct Node *last = *head_ref;  /* used in step 5*/
-  
-    /* 2. put in the data  */
+    Node *last = *head_ref;  
+    
     new_node->pid = pid;
-
-    /* 3. This new node is going to be the last node, so make next
-          of it as NULL*/
     new_node->next = NULL;
  
-    /* 4. If the Linked List is empty, then make the new node as head */
-    if (*head_ref == NULL){
+    /* Lista vacia, new node = head */
+    if(*head_ref == NULL){
         new_node->n_job = 1;
         *head_ref = new_node;
         return;
     } 
       
-    /* 5. Else traverse till the last node */
-    while (last->next != NULL)
+    /* Buscamos el ultimo nodo */
+    while(last->next != NULL){
         last = last->next;
+    }
   
-    /* 6. Change the next of last node */
     last->next = new_node;
     new_node->n_job = last->n_job + 1;
     
     return;   
 }
 
-void deleteNode(struct Node** head_ref, pid_t pid){
-    // Store head node
-    struct Node *temp = *head_ref, *prev;
+int eliminar_nodo(Node** head_ref, pid_t pid){
+    // guardamos head para iterar
+    Node *temp = *head_ref;
+    Node *prev;
  
-    // If head node itself holds the key to be deleted
-    if (temp != NULL && temp->pid == pid) {
-        *head_ref = temp->next; // Changed head
-        free(temp); // free old head
-        return;
+    //si head contiene el pid del proceso a eliminar
+    if(temp != NULL && temp->pid == pid){
+        *head_ref = temp->next; //cambiamos head
+        int job = temp->n_job;
+        free(temp);
+        return job;
     }
  
-    // Search for the key to be deleted, keep track of the
-    // previous node as we need to change 'prev->next'
-    while (temp != NULL && temp->pid != pid) {
+    // buscamos el pid del proceso a eliminar
+    while(temp != NULL && temp->pid != pid){
         prev = temp;
         temp = temp->next;
     }
  
-    // If key was not present in linked list
-    if (temp == NULL)
-        return;
+    //si el pid no estaba en la lista
+    if(temp == NULL)    return 1;
  
-    // Unlink the node from linked list
+    //deslinkeamos el nodo
     prev->next = temp->next;
- 
-    free(temp); // Free memory
+    
+    int job = temp->n_job;
+
+    free(temp);
+
+    return job;
 }
 
-int last_job(struct Node** head_ref){
-    struct Node *last = *head_ref;
+int last_job(Node** head_ref){
+    Node *last = *head_ref;
 
-    while (last->next != NULL)
+    while(last->next != NULL){
         last = last->next;
+    }
 
     return last->n_job;
 } 
 
-int pid_job(struct Node** head_ref, pid_t pid){
-    struct Node *last = *head_ref;
-
-    do{
-        printf("pid %i last %i\n", pid, last->pid);
-        if(last->pid == pid) return last->n_job;
-        last = last->next;
-    }while (last->next != NULL);
-    return last->n_job;
-}
-
 int read_text_file(char *directory, int size, char *buffer){
     FILE *fptr;
     
-    if ((fptr = fopen(directory, "rb")) == NULL)
-    {
+    if((fptr = fopen(directory, "rb")) == NULL){
         fprintf(stderr, "Error! opening file\n");
         // Program exits if the file pointer returns NULL.
         exit(-1);
     }
 
     int leer = 0;
-    while ((leer = fread(buffer, size, 1, fptr)) > 0);
+    while((leer = fread(buffer, size, 1, fptr)) > 0);
 
     fclose(fptr); 
     
@@ -103,6 +91,7 @@ void reemplazar_char(char* string, char ch){
     if((reemplazado=strchr(string, ch)) != NULL){
         *reemplazado = '\0';
     }
+    return;
 }
 
 void help_menu(FILE* stream, int exit_code){
@@ -120,6 +109,7 @@ void get_env_var(char* dst, char* var){
         help_menu(stderr, 1);
     }
     strcpy(dst, ptr);
+    return;
 }
 
 void get_hostname(char* dst){
@@ -130,12 +120,13 @@ void get_hostname(char* dst){
         fprintf(stderr, "Error al buscar el hostname.\n");
         help_menu(stderr, 1);
     }
+    return;
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
 	pid_t child_pid;
     int child_status;
-    static struct Node *head = NULL;
+    static Node *head = NULL;
 
 	/* Duplicate this process. */
 	child_pid = fork();
@@ -171,9 +162,8 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             exit(1);
         default:    ;
             pid_t zombie_pid;             
-            while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){
-                deleteNode(&head, zombie_pid);
-                printf("[%i]\t%i\t", pid_job(&head, zombie_pid), zombie_pid);
+            while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){                
+                printf("[%i]\t%i\t", eliminar_nodo(&head, zombie_pid), zombie_pid);
                 if(WIFEXITED(child_status)){
                     if(WEXITSTATUS(child_status) == 0)  printf("Done\n");
                     else printf("terminated with error code\t%i\n", WEXITSTATUS(child_status));
@@ -209,6 +199,7 @@ void ejecutar(char* program, char** arg_list, int cant_args, char* path){
     if(cant_args == 4){
         execl(path, program, arg_list[1], arg_list[2], arg_list[3], (char*) NULL);
     }	
+    return;
 }
 
 /*  Esta funcion devuelve 1 si encuentra '&' y lo reemplaza por '\0'. 

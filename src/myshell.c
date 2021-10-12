@@ -57,6 +57,7 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
     }
 
     printf("%s@%s:%s$ ", username, hostname, current_path);
+    return;
 }
 
 void identificar_cmd(char* cmd){
@@ -79,6 +80,7 @@ void identificar_cmd(char* cmd){
     else{
         invocar(cmd);
     }
+    return;
 }
 
 int invocar(char* program){
@@ -118,29 +120,42 @@ void eco(char* cmd){
 
         char* ptr = strtok(cmd, " ");//leo palabra a palabra
         if(ptr != NULL){
+            char ch = '\0';
             i = 0;
             while(isspace(*ptr)) i++;//elimino espacios
             if(ptr[i] == '$'){//chequeo si es env var
+                if(ispunct(ptr[i+strlen(ptr)-1])){
+                    ch = ptr[i+strlen(ptr)-1];
+                    reemplazar_char(ptr, ch);
+                }   
                 ptr = getenv(ptr+1);
             }
-            printf("%s ", ptr);
+            if(ptr == NULL) ptr = "";
+            printf("%s%c ", ptr, ch);
         }
 
         while(ptr != NULL){
             ptr = strtok(NULL, " ");
             if(ptr != NULL){
                 i = 0;
+                char ch = '\0';
                 while(isspace(*ptr)) i++;
                 if(ptr[i] == '$'){
+                    if(ispunct(ptr[i+strlen(ptr)-1])){
+                        ch = ptr[i+strlen(ptr)-1];
+                        reemplazar_char(ptr, ch);
+                    }   
                     ptr = getenv(ptr+1);
                 }      
-                printf("%s ", ptr);
+                if(ptr == NULL) ptr = "";
+                printf("%s%c ", ptr, ch);
             }
             else break;
         }
     }
 
     printf("\n");
+    return;
 }
 
 int cambiar_dir(char* dir){

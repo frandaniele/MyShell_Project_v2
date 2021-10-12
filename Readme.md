@@ -36,7 +36,7 @@ Cuando el input de usuario no es un comando interno se trata de invocar como pro
 La funcion _spawn_ se encarga de llamar a _fork_ y luego segun lo que retorne:
 -   '-1': error en fork, lo reporta y realiza salida limpia.
 -   '0': es el child. Se sirve de la funcion _ejecutar_ que se encarga de llamar a _execl_ segun la cantidad de argumentos con que se haya invocado al programa. Primero lo intenta con el path que se haya pasado, si es absoluto se ejecutará el programa. Luego concatena el path con directorios de Linux donde se suelen encontrar los ejecutables e intenta ejecutarlo. Si no tuvo exito prueba con el path en que se encuentra, y si tampoco hubo exito reporta que no se encontro el programa y realiza una salida limpia con codigo de salida '1'.
--   default: es el parent. Se encarga de limpiar procesos zombies si los hay y si se invoco el programa en primer plano espera a que finalice, y si no imprime la informacion del proceso en segundo plano (job y pid).
+-   default: es el parent. Se encarga de limpiar procesos zombies si los hay y si se invoco el programa en primer plano espera a que finalice, y si no imprime la informacion del proceso en segundo plano (job y pid). Para esto ultimo se utiliza una lista enlazada de procesos con sus pid y numero de job con las funciones _append_, _eliminar_nodo_ y _last_job_.
 
 #### 4. Batch file
 Si se invoca a _myshell_ con un batch file como argumento se llama a la funcion _leer_batchfile_ la cual se encarga de leer linea a linea los comandos en el archivo y ejecutarlos. Cuando termina se sale de la shell.
