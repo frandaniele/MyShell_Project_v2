@@ -17,6 +17,12 @@
 
 */
 
+struct Node{
+    pid_t pid;
+    int n_job;
+    struct Node *next;
+};
+
 /* Lee texto de un archivo y lo guarda en un buffer de tamaño size  */
 int read_text_file(char *directory, int size, char *buffer);
 
@@ -39,3 +45,11 @@ int identificar_seg_plano(char* str);
 
 /* Ejecuta el programa  */
 void ejecutar(char* program, char** arg_list, int cant_args, char* path);
+
+void append(struct Node** head_ref, pid_t pid);
+
+void deleteNode(struct Node** head_ref, pid_t pid);
+
+int last_job(struct Node** head_ref);
+
+int pid_job(struct Node** head_ref, pid_t pid);
