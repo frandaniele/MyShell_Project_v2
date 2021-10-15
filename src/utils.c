@@ -139,16 +139,22 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             /* pruebo path absoluto */
             ejecutar(arg_list[0], arg_list, cant_args, program);
 
-            /* busco en paths estandar  */  
-            char paths[5][128] = {  "/bin", 
-                                    "/usr/bin",
-                                    "/usr/local/bin",
-                                    "/usr/games",
-                                    "/usr/local/games"};
-                                  
-            for(int i = 0; i < 5; i++){
-                strcat(paths[i],program);
-                ejecutar(program, arg_list, cant_args, paths[i]);
+            /* pruebo los paths en env var $PATH    */
+            char *paths = getenv("PATH");
+            char *ptr = strtok(paths, ":");
+            char aux[256];
+
+            strcpy(aux,ptr);
+            strcat(aux,program);
+            ejecutar(program, arg_list, cant_args, aux);
+
+            while(ptr != NULL){
+                ptr = strtok(NULL, ":");
+                if(ptr != NULL){
+                    strcpy(aux,ptr);
+                    strcat(aux,program);
+                    ejecutar(program, arg_list, cant_args, aux);
+                }
             }
 
             /* busco en el path que me encuentro   */
@@ -165,11 +171,11 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){                
                 printf("[%i]\t%i\t", eliminar_nodo(&head, zombie_pid), zombie_pid);
                 if(WIFEXITED(child_status)){
-                    if(WEXITSTATUS(child_status) == 0)  printf("Done\n");
-                    else printf("terminated with error code\t%i\n", WEXITSTATUS(child_status));
+                    if(WEXITSTATUS(child_status) == 0)      printf("Done\n");
+                    else    printf("terminated with error code\t%i\n", WEXITSTATUS(child_status));
                 }
                 if(WIFSIGNALED(child_status)){
-                    printf("exited via signal\t%i\n",WTERMSIG(child_status));
+                    printf("exited via signal\t%i\n", WTERMSIG(child_status));
                 }
             }
 
