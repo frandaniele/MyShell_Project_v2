@@ -30,3 +30,17 @@ int cambiar_dir(char* dir);
 
 /* Lee instrucciones secuenciales desde un batch file */
 int leer_batchfile(char* file);
+
+void tuberia();
+
+void redireccionar(char* cmd);
+
+void redireccion_entrada(char* cmd);
+
+void redireccion_salida(char* cmd, int append);
+
+void redireccion_doble(char* cmd, int append);
+
+void signaling();
+
+int add_inputfile(char* program, char* input);

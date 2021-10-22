@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <errno.h>
 
 /**
   @file utils.h
@@ -29,6 +30,9 @@ int read_text_file(char *directory, int size, char *buffer);
 /* Reemplaza ch de string por '\0' */
 void reemplazar_char(char* string, char ch);
 
+/* Elimina los espacios en blanco de un string */
+char* trimwhitespace(char *str);
+
 /* Muestra un menu de ayuda */
 void help_menu(FILE* stream, int exit_code);
 
@@ -47,10 +51,17 @@ int identificar_seg_plano(char* str);
 void ejecutar(char* program, char** arg_list, int cant_args, char* path);
 
 /*  Agrega nodos con un pid y n_job secuencial a una lista enlazada */
-void append(Node** head_ref, pid_t pid);
+void append_nodo(Node** head_ref, pid_t pid);
 
 /*  Elimina un nodo segun su pid*/
 int eliminar_nodo(Node** head_ref, pid_t pid);
 
 /*  Devuelve el n_job del ultimo nodo en la lista */
 int last_job(Node** head_ref);
+
+/*  Detecta si se debe redireccionar  */
+int hay_redireccion(char* command);
+
+int obtener_io(char* cmd, char** programs, char* ch);
+
+int reemplazar_stdout(char* file, int append);

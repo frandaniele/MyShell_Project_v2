@@ -14,4 +14,4 @@ app: src/app.c
 		$(CC) $(CFLAGS) $(OFLAGS) -o src/bin/app src/app.c
 
 clean:
-		$(RM) *.o src/bin/myshell src/bin/app
+		$(RM) *.o *.txt src/bin/myshell src/bin/app

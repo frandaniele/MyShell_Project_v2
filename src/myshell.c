@@ -76,6 +76,9 @@ void identificar_cmd(char* cmd){
     else if(strcmp(cmd, "echo") == 0 || strncmp("echo ", cmd, 5) == 0 || strncmp("echo\t", cmd, 5) == 0){
         eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
     }
+    else if(hay_redireccion(cmd)){
+        redireccionar(cmd);
+    }
     else if(strcmp(cmd, "") == 0){}
     else{
         invocar(cmd);
@@ -115,6 +118,25 @@ int invocar(char* program){
 void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
     
+    if(strchr(cmd, '>')){
+        int append = 1;
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+                fprintf(stderr, "Error de sintaxis\n");
+                return;
+            }
+        }
+        else{
+            append = 0;
+        }
+        char *file = strtok(cmd, ">");
+        file = strtok(NULL, ">");
+        if(reemplazar_stdout(trimwhitespace(file), append)){
+            fprintf(stderr, "No se pudo redireccionar\n");
+            return;
+        }
+    } 
+
     if(strcmp(cmd, "")){//input = echo comentario|variable
         int i;
 
@@ -124,14 +146,16 @@ void eco(char* cmd){
             i = 0;
             while(isspace(*ptr)) i++;//elimino espacios
             if(ptr[i] == '$'){//chequeo si es env var
-                if(ispunct(ptr[i+strlen(ptr)-1])){
+                if(ispunct(ptr[i+strlen(ptr)-1]) || isspace(ptr[i+strlen(ptr)-1])){
                     ch = ptr[i+strlen(ptr)-1];
                     reemplazar_char(ptr, ch);
                 }   
                 ptr = getenv(ptr+1);
             }
             if(ptr == NULL) ptr = "";
-            printf("%s%c ", ptr, ch);
+            printf("%s", ptr);
+            if(ch != '\0') printf("%c ", ch);
+            else printf(" ");
         }
 
         while(ptr != NULL){
@@ -141,20 +165,28 @@ void eco(char* cmd){
                 char ch = '\0';
                 while(isspace(*ptr)) i++;
                 if(ptr[i] == '$'){
-                    if(ispunct(ptr[i+strlen(ptr)-1])){
+                    if(ispunct(ptr[i+strlen(ptr)-1]) || isspace(ptr[i+strlen(ptr)-1])){
                         ch = ptr[i+strlen(ptr)-1];
                         reemplazar_char(ptr, ch);
                     }   
                     ptr = getenv(ptr+1);
                 }      
                 if(ptr == NULL) ptr = "";
-                printf("%s%c ", ptr, ch);
+                printf("%s", ptr);
+                if(ch != '\0') printf("%c ", ch);
+                else printf(" ");
             }
             else break;
         }
     }
 
     printf("\n");
+
+    if(freopen("/dev/tty", "w", stdout) == NULL){
+        perror("ERROR al redireccionar la salida a la consola");
+        exit(1);
+    }
+
     return;
 }
 
@@ -223,6 +255,133 @@ int leer_batchfile(char* file){
     }
 
     fclose(fp);
+
+    return 0;
+}
+
+void tuberia(){
+    return;
+}
+
+void redireccionar(char* cmd){
+    if(strchr(cmd, '<') && strchr(cmd, '>')){
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+                fprintf(stderr, "Error de sintaxis\n");
+                return;
+            }
+            redireccion_doble(cmd, 1);
+        }
+        else{
+            redireccion_doble(cmd, 0);
+        }
+    }
+    else if(strchr(cmd, '<')){
+        redireccion_entrada(cmd);
+    }
+    else if(strchr(cmd, '>')){
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+                fprintf(stderr, "Error de sintaxis\n");
+                return;
+            }
+            redireccion_salida(cmd, 1);
+        }
+        else{
+            redireccion_salida(cmd, 0);
+        }
+    }
+    else{
+        fprintf(stderr, "Error inesperado redireccionando\n");
+    }
+    return;
+}
+
+void redireccion_entrada(char* cmd){
+    char* buffer[2];
+    
+    if(obtener_io(cmd, buffer, "<"))  return;
+
+    if(add_inputfile(buffer[0], buffer[1])){
+        fprintf(stderr, "ERROR: no se pudo invocar\n");
+        return;
+    }
+
+    return;
+}
+
+void redireccion_salida(char* cmd, int append){
+    char* buffer[2];
+
+    if(obtener_io(cmd, buffer, ">"))  return;
+
+    if(reemplazar_stdout(buffer[1], append)){
+        fprintf(stderr, "No se pudo redireccionar\n");
+        return;
+    }
+
+    invocar(buffer[0]);
+
+    if(freopen("/dev/tty", "w", stdout) == NULL){
+        perror("ERROR al redireccionar la salida a la consola");
+        exit(1);
+    }
+
+    return;
+}
+
+void redireccion_doble(char* cmd, int append){
+    char* buffer1[2], *buffer2[2];
+    char *input, *output, *program;
+    
+    if(obtener_io(cmd, buffer1, ">"))  return;
+    if(strchr(buffer1[0], '<')){
+        if(obtener_io(buffer1[0], buffer2, "<"))  return;
+        input = buffer2[1];
+        output = buffer1[1];
+        program = buffer2[0];
+    }
+    else{
+        if(obtener_io(buffer1[1], buffer2, "<"))  return;
+        input = buffer2[1];
+        output = buffer2[0];
+        program = buffer1[0];
+    }
+
+    if(reemplazar_stdout(output, append)){
+        fprintf(stderr, "ERROR: No se pudo redireccionar\n");
+        return;
+    }
+
+    if(add_inputfile(program, input)){
+        fprintf(stderr, "ERROR: no se pudo invocar\n");
+        return;
+    }
+
+    if(freopen("/dev/tty", "w", stdout) == NULL){
+        perror("ERROR al redireccionar la salida a la consola");
+        exit(1);
+    }
+
+    return;
+}
+
+void signaling(){
+    return;
+}
+
+int add_inputfile(char* program, char* input){
+    char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);
+    if((aux == NULL) || strlen(program) == 0 || strlen(input) == 0)   
+        return 1;
+
+    strcpy(aux, program);
+    strcat(aux, " ");
+    strcat(aux, input);
+
+    invocar(aux);
+
+    free(aux);
 
     return 0;
 }

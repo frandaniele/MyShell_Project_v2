@@ -1,6 +1,6 @@
 #include "include/utils.h"
 
-void append(Node** head_ref, pid_t pid){
+void append_nodo(Node** head_ref, pid_t pid){
     Node* new_node = (Node*)malloc(sizeof(Node));
  
     Node *last = *head_ref;  
@@ -94,6 +94,28 @@ void reemplazar_char(char* string, char ch){
     return;
 }
 
+/* https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way    */
+char* trimwhitespace(char *str){
+    if(str == NULL) return NULL;
+
+    char *end;
+
+    // Trim leading space
+    while(isspace((unsigned char)*str)) str++;
+
+    if(*str == 0)  // All spaces?
+        return str;
+
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while(end > str && isspace((unsigned char)*end)) end--;
+
+    // Write new null terminator character
+    end[1] = '\0';
+
+    return str;
+}
+
 void help_menu(FILE* stream, int exit_code){
     fprintf(stream, 
             "-h --help          Despliega el menú de ayuda.\n"
@@ -181,7 +203,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
 
             if(segundo_plano){
                 //Ejecuto en 2do plano
-                append(&head,child_pid);
+                append_nodo(&head,child_pid);
                 printf("[%i] %i\n", last_job(&head), child_pid);  
             }
             else{
@@ -214,6 +236,53 @@ int identificar_seg_plano(char* str){
     if(strchr(str, '&') != NULL){
         reemplazar_char(str, '&');
         return 1;
+    }
+    return 0;
+}
+
+int hay_redireccion(char* cmd){
+    return (strchr(cmd, '<') || strchr(cmd, '>'));
+}
+
+int obtener_io(char* cmd, char** programs, char* ch){
+    char *ptr = strtok(cmd, ch);
+    int i = 0;
+    while(ptr != NULL && i<sizeof(programs)){
+        if(ptr != NULL){
+            programs[i] = malloc(strlen(ptr));
+            strcpy(programs[i], trimwhitespace(ptr));
+            i++;
+            ptr = strtok(NULL, ch);
+        }
+        else{
+            fprintf(stderr, "ERROR: file is empty\n");
+            return 1;
+        }
+    } 
+
+    return 0;
+}
+
+int reemplazar_stdout(char* file, int append){
+    if(append){
+        if(freopen(file, "a+", stdout) == NULL){
+            perror("ERROR en redireccion de salida");
+            if(freopen("/dev/tty", "w", stdout) == NULL){
+                perror("ERROR al redireccionar la salida a la consola");
+                exit(1);
+            }
+            return 1;
+        }
+    }
+    else{
+        if(freopen(file, "w", stdout) == NULL){
+            perror("ERROR en redireccion de salida");
+            if(freopen("/dev/tty", "w", stdout) == NULL){
+                perror("ERROR al redireccionar la salida a la consola");
+                exit(1);
+            }
+            return 1;
+        }
     }
     return 0;
 }
