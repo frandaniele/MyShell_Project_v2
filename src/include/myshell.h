@@ -33,7 +33,7 @@ int leer_batchfile(char* file);
 
 void tuberia();
 
-void redireccionar(char* cmd);
+void redireccionar(char* cmd, int eco);
 
 void redireccion_entrada(char* cmd);
 

@@ -77,7 +77,7 @@ void identificar_cmd(char* cmd){
         eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
     }
     else if(hay_redireccion(cmd)){
-        redireccionar(cmd);
+        redireccionar(cmd, 0);
     }
     else if(strcmp(cmd, "") == 0){}
     else{
@@ -118,24 +118,7 @@ int invocar(char* program){
 void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
     
-    if(strchr(cmd, '>')){
-        int append = 1;
-        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
-            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
-                fprintf(stderr, "Error de sintaxis\n");
-                return;
-            }
-        }
-        else{
-            append = 0;
-        }
-        char *file = strtok(cmd, ">");
-        file = strtok(NULL, ">");
-        if(reemplazar_stdout(trimwhitespace(file), append)){
-            fprintf(stderr, "No se pudo redireccionar\n");
-            return;
-        }
-    } 
+    if(hay_redireccion(cmd)) redireccionar(cmd, 1);
 
     if(strcmp(cmd, "")){//input = echo comentario|variable
         int i;
@@ -263,21 +246,34 @@ void tuberia(){
     return;
 }
 
-void redireccionar(char* cmd){
+void redireccionar(char* cmd, int eco){
     if(strchr(cmd, '<') && strchr(cmd, '>')){
         if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
             if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
-            redireccion_doble(cmd, 1);
+            if(eco){
+                char *file = strtok(cmd, "<");
+            }
+            else redireccion_doble(cmd, 1);
         }
         else{
-            redireccion_doble(cmd, 0);
+            if(eco){
+                
+            }
+            else redireccion_doble(cmd, 0);
         }
     }
     else if(strchr(cmd, '<')){
-        redireccion_entrada(cmd);
+        if(eco){
+            char *file = strtok(cmd, "<");
+            char txt[1024];
+            read_text_file(trimwhitespace(file), 1024, txt);
+            printf("%s\n", txt);
+            strcpy(cmd, "");
+        }
+        else redireccion_entrada(cmd);
     }
     else if(strchr(cmd, '>')){
         if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
@@ -285,10 +281,26 @@ void redireccionar(char* cmd){
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
-            redireccion_salida(cmd, 1);
+            if(eco){
+                char *file = strtok(cmd, ">");
+                file = strtok(NULL, ">");
+                if(reemplazar_stdout(trimwhitespace(file), 1)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+            }
+            else redireccion_salida(cmd, 1);
         }
         else{
-            redireccion_salida(cmd, 0);
+            if(eco){
+                char *file = strtok(cmd, ">");
+                file = strtok(NULL, ">");
+                if(reemplazar_stdout(trimwhitespace(file), 0)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+            }
+            else redireccion_salida(cmd, 0);
         }
     }
     else{
