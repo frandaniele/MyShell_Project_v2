@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <unistd.h> 
 #include <sys/wait.h>
+#include <signal.h>
 
 /**
   @file myshell.h
@@ -31,7 +32,7 @@ int cambiar_dir(char* dir);
 /* Lee instrucciones secuenciales desde un batch file */
 int leer_batchfile(char* file);
 
-void tuberia();
+void tuberia(char* cmd);
 
 void redireccionar(char* cmd, int eco);
 
@@ -40,7 +41,5 @@ void redireccion_entrada(char* cmd);
 void redireccion_salida(char* cmd, int append);
 
 void redireccion_doble(char* cmd, int append);
-
-void signaling();
 
 int add_inputfile(char* program, char* input);

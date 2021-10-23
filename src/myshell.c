@@ -24,6 +24,11 @@ int main(int argc, char **argv){
         char path[256];
         char user_input[256];
 
+        /*instalo signals */
+        signal(SIGINT, SIG_IGN);
+        signal(SIGTSTP, SIG_IGN);
+        signal(SIGQUIT, SIG_IGN);
+
         while(1) {
             print_cmdline_prompt(username, hostname, path);
             
@@ -79,6 +84,9 @@ void identificar_cmd(char* cmd){
     else if(hay_redireccion(cmd)){
         redireccionar(cmd, 0);
     }
+    else if(strchr(cmd, '|')){
+        tuberia(cmd);
+    }
     else if(strcmp(cmd, "") == 0){}
     else{
         invocar(cmd);
@@ -119,7 +127,7 @@ void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
     
     if(hay_redireccion(cmd)) redireccionar(cmd, 1);
-
+    
     if(strcmp(cmd, "")){//input = echo comentario|variable
         int i;
 
@@ -242,7 +250,8 @@ int leer_batchfile(char* file){
     return 0;
 }
 
-void tuberia(){
+void tuberia(char* cmd){
+    printf("pipeee\n");
     return;
 }
 
@@ -255,12 +264,32 @@ void redireccionar(char* cmd, int eco){
             }
             if(eco){
                 char *file = strtok(cmd, "<");
+                file = strtok(file, ">>");
+                char txt[1024];
+                read_text_file(trimwhitespace(file), 1024, txt);
+                file = strtok(NULL, ">>");
+                if(reemplazar_stdout(trimwhitespace(file), 1)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+                printf("%s",txt);
+                strcpy(cmd, "");
             }
             else redireccion_doble(cmd, 1);
         }
         else{
-            if(eco){
-                
+            if(eco){                
+                char *file = strtok(cmd, "<");
+                file = strtok(file, ">");
+                char txt[1024];
+                read_text_file(trimwhitespace(file), 1024, txt);
+                file = strtok(NULL, ">");
+                if(reemplazar_stdout(trimwhitespace(file), 0)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+                printf("%s",txt);
+                strcpy(cmd, "");
             }
             else redireccion_doble(cmd, 0);
         }
@@ -375,10 +404,6 @@ void redireccion_doble(char* cmd, int append){
         exit(1);
     }
 
-    return;
-}
-
-void signaling(){
     return;
 }
 

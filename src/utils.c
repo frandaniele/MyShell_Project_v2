@@ -1,5 +1,9 @@
 #include "include/utils.h"
 
+static void enviar_signal(int sig);
+
+pid_t child_pid;
+
 void append_nodo(Node** head_ref, pid_t pid){
     Node* new_node = (Node*)malloc(sizeof(Node));
  
@@ -146,7 +150,6 @@ void get_hostname(char* dst){
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
-	pid_t child_pid;
     int child_status;
     static Node *head = NULL;
 
@@ -207,8 +210,19 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 printf("[%i] %i\n", last_job(&head), child_pid);  
             }
             else{
+                /*instalo signals */
+                signal(SIGINT, enviar_signal);
+                signal(SIGTSTP, enviar_signal);
+                signal(SIGQUIT, enviar_signal);
+            
                 //Ejecuto en 1er plano
-                waitpid(child_pid, NULL, 0);
+                waitpid(child_pid, &child_status, WUNTRACED);
+
+                /*instalo signals */
+                signal(SIGINT, SIG_IGN);
+                signal(SIGTSTP, SIG_IGN);
+                signal(SIGQUIT, SIG_IGN);
+           
             }
     }
     return 0;
@@ -285,4 +299,9 @@ int reemplazar_stdout(char* file, int append){
         }
     }
     return 0;
+}
+
+static void enviar_signal(int sig){
+    printf("sig %i to pid %i\n", sig, child_pid);
+    kill(child_pid, sig);
 }
