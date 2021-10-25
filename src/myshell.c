@@ -189,40 +189,30 @@ int cambiar_dir(char* dir){
     char* viejo = getenv("PWD");
 
     if(strncmp(dir,"-\t", 2) == 0 || strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){ //input = cd -
-        char* nuevo = getenv("OLDPWD");
-        if(nuevo != NULL){  //oldpwd set
-            if(setenv("PWD", nuevo, 1) == 0){  //pwd = oldpwd
-                setenv("OLDPWD", viejo, 1); //oldpwd = pwd anterior
-                printf("%s\n", nuevo);
-            }
-            else{ //en caso de que setenv de error
-                fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
-                return 1;
-            }
-        }
-        else{ //oldpwd not set
+        dir = getenv("OLDPWD");
+        if(dir==NULL){
             fprintf(stderr, "ERROR: Oldpwd not set.\n");
             return 1;
         }
     }
-    else{ //input = cd directorio
-        if(chdir(dir) != 0){
-            fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
-            return 1;
+
+    //input = cd directorio
+    if(chdir(dir) != 0){
+        fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
+        return 1;
+    }
+    else{
+        char buf[256];
+        if(getcwd(buf, 256) == NULL){
+            fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
+            help_menu(stderr, 1);
+        }
+        if(setenv("PWD", buf, 1) == 0){ //se pudo cambiar, cambio pwd y oldpwd
+            setenv("OLDPWD", viejo, 1);
         }
         else{
-            char buf[256];
-            if(getcwd(buf, 256) == NULL){
-                fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
-                help_menu(stderr, 1);
-            }
-            if(setenv("PWD", buf, 1) == 0){ //se pudo cambiar, cambio pwd y oldpwd
-                setenv("OLDPWD", viejo, 1);
-            }
-            else{
-                fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
-                return 1;
-            }
+            fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
+            return 1;
         }
     }
 
@@ -251,7 +241,15 @@ int leer_batchfile(char* file){
 }
 
 void tuberia(char* cmd){
-    printf("pipeee\n");
+    char* buffer[4];
+    int to_free;
+    if((to_free = obtener_io(cmd, buffer, "|"))<0)  return;
+
+    for(int i = 0; i < to_free; i++){
+        free(buffer[i]);        
+    } 
+        
+
     return;
 }
 
@@ -264,32 +262,32 @@ void redireccionar(char* cmd, int eco){
             }
             if(eco){
                 char *file = strtok(cmd, "<");
+                strcpy(cmd, "");
                 file = strtok(file, ">>");
                 char txt[1024];
-                read_text_file(trimwhitespace(file), 1024, txt);
+                if(read_text_file(trimwhitespace(file), 1024, txt)) return;
                 file = strtok(NULL, ">>");
                 if(reemplazar_stdout(trimwhitespace(file), 1)){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
                 printf("%s",txt);
-                strcpy(cmd, "");
             }
             else redireccion_doble(cmd, 1);
         }
         else{
             if(eco){                
                 char *file = strtok(cmd, "<");
+                strcpy(cmd, "");
                 file = strtok(file, ">");
                 char txt[1024];
-                read_text_file(trimwhitespace(file), 1024, txt);
+                if(read_text_file(trimwhitespace(file), 1024, txt)) return;
                 file = strtok(NULL, ">");
                 if(reemplazar_stdout(trimwhitespace(file), 0)){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
                 printf("%s",txt);
-                strcpy(cmd, "");
             }
             else redireccion_doble(cmd, 0);
         }
@@ -297,10 +295,10 @@ void redireccionar(char* cmd, int eco){
     else if(strchr(cmd, '<')){
         if(eco){
             char *file = strtok(cmd, "<");
-            char txt[1024];
-            read_text_file(trimwhitespace(file), 1024, txt);
-            printf("%s\n", txt);
             strcpy(cmd, "");
+            char txt[1024];
+            if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+            printf("%s\n", txt);
         }
         else redireccion_entrada(cmd);
     }
@@ -340,21 +338,27 @@ void redireccionar(char* cmd, int eco){
 
 void redireccion_entrada(char* cmd){
     char* buffer[2];
+    int to_free;
     
-    if(obtener_io(cmd, buffer, "<"))  return;
+    if((to_free = obtener_io(cmd, buffer, "<"))<0)  return;
 
     if(add_inputfile(buffer[0], buffer[1])){
         fprintf(stderr, "ERROR: no se pudo invocar\n");
         return;
     }
 
+    for(int i = 0; i < to_free; i++){
+        free(buffer[i]);        
+    } 
+
     return;
 }
 
 void redireccion_salida(char* cmd, int append){
     char* buffer[2];
+    int to_free;
 
-    if(obtener_io(cmd, buffer, ">"))  return;
+    if((to_free = obtener_io(cmd, buffer, ">"))<0)  return;
 
     if(reemplazar_stdout(buffer[1], append)){
         fprintf(stderr, "No se pudo redireccionar\n");
@@ -368,22 +372,27 @@ void redireccion_salida(char* cmd, int append){
         exit(1);
     }
 
+    for(int i = 0; i < to_free; i++){
+        free(buffer[i]);        
+    } 
+
     return;
 }
 
 void redireccion_doble(char* cmd, int append){
     char* buffer1[2], *buffer2[2];
     char *input, *output, *program;
+    int to_free1, to_free2;
     
-    if(obtener_io(cmd, buffer1, ">"))  return;
+    if((to_free1 = obtener_io(cmd, buffer1, ">"))<0)  return;
     if(strchr(buffer1[0], '<')){
-        if(obtener_io(buffer1[0], buffer2, "<"))  return;
+        if((to_free2 = obtener_io(buffer1[0], buffer2, "<"))<0)  return;
         input = buffer2[1];
         output = buffer1[1];
         program = buffer2[0];
     }
     else{
-        if(obtener_io(buffer1[1], buffer2, "<"))  return;
+        if((to_free2 = obtener_io(buffer1[1], buffer2, "<"))<0)  return;
         input = buffer2[1];
         output = buffer2[0];
         program = buffer1[0];
@@ -403,6 +412,14 @@ void redireccion_doble(char* cmd, int append){
         perror("ERROR al redireccionar la salida a la consola");
         exit(1);
     }
+
+    for(int i = 0; i < to_free1; i++){
+        free(buffer1[i]);        
+    } 
+
+    for(int i = 0; i < to_free2; i++){
+        free(buffer2[i]);        
+    } 
 
     return;
 }

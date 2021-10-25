@@ -77,8 +77,7 @@ int read_text_file(char *directory, int size, char *buffer){
     
     if((fptr = fopen(directory, "rb")) == NULL){
         fprintf(stderr, "Error! opening file\n");
-        // Program exits if the file pointer returns NULL.
-        exit(-1);
+        return 1;
     }
 
     int leer = 0;
@@ -139,7 +138,7 @@ void get_env_var(char* dst, char* var){
 }
 
 void get_hostname(char* dst){
-    read_text_file("/proc/sys/kernel/hostname", 32, dst);
+    if(read_text_file("/proc/sys/kernel/hostname", 32, dst)) return;
 
     dst = strtok(dst, "\n");
     if(dst == NULL){
@@ -159,8 +158,17 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
     switch(child_pid){
         case -1:
             fprintf(stderr, "ERROR: fork");
+            perror("");
             exit(1);
-        case 0: ;
+        case 0: 
+
+            if(!segundo_plano) {
+                /*instalo signals */
+                signal(SIGINT, SIG_DFL);
+                signal(SIGTSTP, SIG_DFL);
+                signal(SIGQUIT, SIG_DFL);
+            }
+
             /* pruebo path absoluto */
             ejecutar(arg_list[0], arg_list, cant_args, program);
 
@@ -190,6 +198,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             
             /* returns only if an error occurs. */
             fprintf(stderr, "El programa %s no fue encontrado\n", program);
+            perror("");
             exit(1);
         default:    ;
             pid_t zombie_pid;             
@@ -216,7 +225,10 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 signal(SIGQUIT, enviar_signal);
             
                 //Ejecuto en 1er plano
-                waitpid(child_pid, &child_status, WUNTRACED);
+                if(waitpid(child_pid, &child_status, WUNTRACED) == -1) {
+                    perror("Waitpid");
+                    exit(1);
+                }
 
                 /*instalo signals */
                 signal(SIGINT, SIG_IGN);
@@ -259,6 +271,12 @@ int hay_redireccion(char* cmd){
 }
 
 int obtener_io(char* cmd, char** programs, char* ch){
+    cmd = trimwhitespace(cmd);
+    if(strcmp(cmd, ch)==0){
+        fprintf(stderr, "ERROR: file is empty\n");
+        return -1;
+    } 
+
     char *ptr = strtok(cmd, ch);
     int i = 0;
     while(ptr != NULL && i<sizeof(programs)){
@@ -270,11 +288,11 @@ int obtener_io(char* cmd, char** programs, char* ch){
         }
         else{
             fprintf(stderr, "ERROR: file is empty\n");
-            return 1;
+            return -1;
         }
     } 
 
-    return 0;
+    return i; //n de elementos alocados
 }
 
 int reemplazar_stdout(char* file, int append){
@@ -302,6 +320,5 @@ int reemplazar_stdout(char* file, int append){
 }
 
 static void enviar_signal(int sig){
-    printf("sig %i to pid %i\n", sig, child_pid);
     kill(child_pid, sig);
 }
