@@ -89,12 +89,12 @@ void identificar_cmd(char* cmd){
     }
     else if(strcmp(cmd, "") == 0){}
     else{
-        invocar(cmd);
+        invocar(cmd, 0, "");
     }
     return;
 }
 
-int invocar(char* program){
+int invocar(char* program, int hay_pipe, char* buf){
     const int MAX_ARGS = 4;
     int i = 1;
     char *arg_list[MAX_ARGS];
@@ -118,7 +118,7 @@ int invocar(char* program){
 
     int segundo_plano = identificar_seg_plano(arg_list[i-1]);
     if(strcmp(arg_list[i-1],"") == 0) i--;//si llame con & separado lo identifico
-    spawn(program, arg_list, segundo_plano, i);//llamo funcion para ejecutar programa
+    spawn(program, arg_list, segundo_plano, i, hay_pipe, buf);//llamo funcion para ejecutar programa
 
     return 0;
 }
@@ -245,11 +245,14 @@ void tuberia(char* cmd){
     int to_free;
     if((to_free = obtener_io(cmd, buffer, "|"))<0)  return;
 
+    char child_output[4096];
+    invocar(buffer[0], 1, child_output);
+    printf("%s\n", child_output);
     for(int i = 0; i < to_free; i++){
+        printf("%s\n", buffer[i]);
         free(buffer[i]);        
     } 
         
-
     return;
 }
 
@@ -340,8 +343,10 @@ void redireccion_entrada(char* cmd){
     char* buffer[2];
     int to_free;
     
-    if((to_free = obtener_io(cmd, buffer, "<"))<0)  return;
-
+    if((to_free = obtener_io(cmd, buffer, "<"))<2){ // debe haber 2 elementos alocados
+        fprintf(stderr, "ERROR: file is empty\n");
+        return;
+    }  
     if(add_inputfile(buffer[0], buffer[1])){
         fprintf(stderr, "ERROR: no se pudo invocar\n");
         return;
@@ -365,7 +370,7 @@ void redireccion_salida(char* cmd, int append){
         return;
     }
 
-    invocar(buffer[0]);
+    invocar(buffer[0], 0, "");
 
     if(freopen("/dev/tty", "w", stdout) == NULL){
         perror("ERROR al redireccionar la salida a la consola");
@@ -425,15 +430,18 @@ void redireccion_doble(char* cmd, int append){
 }
 
 int add_inputfile(char* program, char* input){
+    if(strlen(program) == 0 || strlen(input) == 0)   
+        return 1;
+
     char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);
-    if((aux == NULL) || strlen(program) == 0 || strlen(input) == 0)   
+    if((aux == NULL) == 0)   
         return 1;
 
     strcpy(aux, program);
     strcat(aux, " ");
     strcat(aux, input);
 
-    invocar(aux);
+    invocar(aux, 0, "");
 
     free(aux);
 

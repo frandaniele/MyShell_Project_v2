@@ -148,9 +148,15 @@ void get_hostname(char* dst){
     return;
 }
 
-int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
+int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int hay_pipe, char* buf){
     int child_status;
     static Node *head = NULL;
+    int fds[2];
+    FILE* stream;
+
+    if(hay_pipe){
+        pipe(fds);
+    }
 
 	/* Duplicate this process. */
 	child_pid = fork();
@@ -167,6 +173,14 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 signal(SIGINT, SIG_DFL);
                 signal(SIGTSTP, SIG_DFL);
                 signal(SIGQUIT, SIG_DFL);
+            }
+
+            if(hay_pipe){
+                close(fds[0]);
+                printf("pipe child\n");
+                //stream = fdopen(fds[1], "w");
+                fdopen(fds[1], "w");
+                printf("pipe child desp fdopen\n");
             }
 
             /* pruebo path absoluto */
@@ -197,6 +211,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             ejecutar(program, arg_list, cant_args, path_actual);
             
             /* returns only if an error occurs. */
+            if(hay_pipe) close (fds[1]);
             fprintf(stderr, "El programa %s no fue encontrado\n", program);
             perror("");
             exit(1);
@@ -213,6 +228,14 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 }
             }
 
+            if(hay_pipe){             
+                close(fds[1]);
+
+                printf("pipe parent\n");
+                stream = fdopen (fds[0], "r");
+                printf("pipe parent desp fdopen\n");
+            }
+
             if(segundo_plano){
                 //Ejecuto en 2do plano
                 append_nodo(&head,child_pid);
@@ -224,6 +247,12 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 signal(SIGTSTP, enviar_signal);
                 signal(SIGQUIT, enviar_signal);
             
+                if(hay_pipe){
+                    char buffer[1024];
+                    while(!feof (stream) && !ferror (stream) && fgets (buffer, sizeof (buffer), stream) != NULL)
+                        strcat(buf, buffer);
+                    close(fds[0]);
+                } 
                 //Ejecuto en 1er plano
                 if(waitpid(child_pid, &child_status, WUNTRACED) == -1) {
                     perror("Waitpid");
@@ -234,8 +263,8 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 signal(SIGINT, SIG_IGN);
                 signal(SIGTSTP, SIG_IGN);
                 signal(SIGQUIT, SIG_IGN);
-           
             }
+
     }
     return 0;
 }
@@ -272,8 +301,7 @@ int hay_redireccion(char* cmd){
 
 int obtener_io(char* cmd, char** programs, char* ch){
     cmd = trimwhitespace(cmd);
-    if(strcmp(cmd, ch)==0){
-        fprintf(stderr, "ERROR: file is empty\n");
+    if(strcmp(cmd, ch)==0){        
         return -1;
     } 
 
@@ -287,7 +315,6 @@ int obtener_io(char* cmd, char** programs, char* ch){
             ptr = strtok(NULL, ch);
         }
         else{
-            fprintf(stderr, "ERROR: file is empty\n");
             return -1;
         }
     } 

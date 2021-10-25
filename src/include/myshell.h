@@ -21,7 +21,7 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path);
 void identificar_cmd(char* cmd);
 
 /* Invoca (o trata) el input del usuario que no es un cmd interno  */
-int invocar(char* program);
+int invocar(char* program, int hay_pipe, char* buf);
 
 /* Simil a comando echo de Linux  */
 void eco(char* cmd);
