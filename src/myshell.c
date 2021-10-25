@@ -166,40 +166,30 @@ int cambiar_dir(char* dir){
     char* viejo = getenv("PWD");
 
     if(strncmp(dir,"-\t", 2) == 0 || strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){ //input = cd -
-        char* nuevo = getenv("OLDPWD");
-        if(nuevo != NULL){  //oldpwd set
-            if(setenv("PWD", nuevo, 1) == 0){  //pwd = oldpwd
-                setenv("OLDPWD", viejo, 1); //oldpwd = pwd anterior
-                printf("%s\n", nuevo);
-            }
-            else{ //en caso de que setenv de error
-                fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
-                return 1;
-            }
-        }
-        else{ //oldpwd not set
+        dir = getenv("OLDPWD");
+        if(dir==NULL){
             fprintf(stderr, "ERROR: Oldpwd not set.\n");
             return 1;
         }
     }
-    else{ //input = cd directorio
-        if(chdir(dir) != 0){
-            fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
-            return 1;
+    
+    //input = cd directorio
+    if(chdir(dir) != 0){
+        fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
+        return 1;
+    }
+    else{
+        char buf[256];
+        if(getcwd(buf, 256) == NULL){
+            fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
+            help_menu(stderr, 1);
+        }
+        if(setenv("PWD", buf, 1) == 0){ //se pudo cambiar, cambio pwd y oldpwd
+            setenv("OLDPWD", viejo, 1);
         }
         else{
-            char buf[256];
-            if(getcwd(buf, 256) == NULL){
-                fprintf(stderr, "ERROR: No se pudo obtener el path actual.\n");
-                help_menu(stderr, 1);
-            }
-            if(setenv("PWD", buf, 1) == 0){ //se pudo cambiar, cambio pwd y oldpwd
-                setenv("OLDPWD", viejo, 1);
-            }
-            else{
-                fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
-                return 1;
-            }
+            fprintf(stderr, "ERROR: No se pudo cambiar la variable PWD.\n");
+            return 1;
         }
     }
 
