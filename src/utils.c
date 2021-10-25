@@ -152,10 +152,12 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
     int child_status;
     static Node *head = NULL;
     int fds[2];
-    FILE* stream;
 
     if(hay_pipe){
-        pipe(fds);
+        if(pipe(fds) != 0){
+            perror("ERROR pipe");
+            return 1;
+        }
     }
 
 	/* Duplicate this process. */
@@ -165,22 +167,18 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
         case -1:
             fprintf(stderr, "ERROR: fork");
             perror("");
-            exit(1);
+            return 1;
         case 0: 
-
             if(!segundo_plano) {
                 /*instalo signals */
                 signal(SIGINT, SIG_DFL);
                 signal(SIGTSTP, SIG_DFL);
                 signal(SIGQUIT, SIG_DFL);
-            }
 
-            if(hay_pipe){
-                close(fds[0]);
-                printf("pipe child\n");
-                //stream = fdopen(fds[1], "w");
-                fdopen(fds[1], "w");
-                printf("pipe child desp fdopen\n");
+                if(hay_pipe){
+                    close(fds[0]);// read_end
+                    dup2(fds[1], STDOUT_FILENO); // write_end
+                }
             }
 
             /* pruebo path absoluto */
@@ -228,14 +226,6 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
                 }
             }
 
-            if(hay_pipe){             
-                close(fds[1]);
-
-                printf("pipe parent\n");
-                stream = fdopen (fds[0], "r");
-                printf("pipe parent desp fdopen\n");
-            }
-
             if(segundo_plano){
                 //Ejecuto en 2do plano
                 append_nodo(&head,child_pid);
@@ -247,24 +237,22 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
                 signal(SIGTSTP, enviar_signal);
                 signal(SIGQUIT, enviar_signal);
             
-                if(hay_pipe){
-                    char buffer[1024];
-                    while(!feof (stream) && !ferror (stream) && fgets (buffer, sizeof (buffer), stream) != NULL)
-                        strcat(buf, buffer);
-                    close(fds[0]);
-                } 
+
                 //Ejecuto en 1er plano
                 if(waitpid(child_pid, &child_status, WUNTRACED) == -1) {
                     perror("Waitpid");
                     exit(1);
                 }
 
+                if(hay_pipe){
+                    close(fds[1]); //write_edn
+                    read(fds[0], buf, 4096);
+                }
                 /*instalo signals */
                 signal(SIGINT, SIG_IGN);
                 signal(SIGTSTP, SIG_IGN);
                 signal(SIGQUIT, SIG_IGN);
             }
-
     }
     return 0;
 }

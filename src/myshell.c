@@ -245,13 +245,17 @@ void tuberia(char* cmd){
     int to_free;
     if((to_free = obtener_io(cmd, buffer, "|"))<0)  return;
 
-    char child_output[4096];
-    invocar(buffer[0], 1, child_output);
-    printf("%s\n", child_output);
-    for(int i = 0; i < to_free; i++){
-        printf("%s\n", buffer[i]);
-        free(buffer[i]);        
-    } 
+    char result[4096];
+
+    invocar(buffer[0], 1, result);
+    //free(buffer[0]);
+    for(int i=1; i<to_free; i++){        
+        add_inputfile(buffer[i], result);
+        //free(buffer[i]);        
+    }
+
+   /* for(int i = 0; i < to_free; i++){
+    } */
         
     return;
 }
@@ -436,10 +440,12 @@ int add_inputfile(char* program, char* input){
     char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);
     if((aux == NULL) == 0)   
         return 1;
-
+    printf("%s\n", program);
     strcpy(aux, program);
     strcat(aux, " ");
     strcat(aux, input);
+    printf("%s\n", input);
+    printf("%s\n", aux);
 
     invocar(aux, 0, "");
 
