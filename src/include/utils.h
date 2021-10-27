@@ -42,6 +42,8 @@ void help_menu(FILE* stream, int exit_code);
 void get_env_var(char* dst, char* var);
 void get_hostname(char* dst);
 
+void obtener_args(char* src, char** dst, int cant_args);
+
 void limpiar_zombies();
 
 /* Crea un proceso imagen y ejecuta program */
@@ -73,6 +75,4 @@ int reemplazar_stdout(char* file, int append);
 
 void redireccionar_a_consola();
 
-void default_signals(__sighandler_t s);
-
-void instalar_signals();
+void instalar_signals(__sighandler_t s);

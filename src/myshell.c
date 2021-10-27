@@ -24,7 +24,7 @@ int main(int argc, char **argv){
         char path[256];
         char user_input[256];
 
-        default_signals(SIG_IGN);
+        instalar_signals(SIG_IGN);
 
         while(1) {
             print_cmdline_prompt(username, hostname, path);
@@ -237,30 +237,12 @@ void tuberia(char* cmd){
     if((to_free = obtener_io(cmd, buffer, "|"))<0)  return;
 
     const int MAX_ARGS = 10;
-    char *arg_list1[MAX_ARGS];
-    int i = 0;
 
-    char *ptr = strtok(buffer[0], " ");
-    while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
-        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
-            arg_list1[i] = ptr;
-            i++;
-        }
-        ptr = strtok(NULL, " ");
-    }
-    arg_list1[i] = NULL;
+    char *arg_list1[MAX_ARGS];
+    obtener_args(buffer[0], arg_list1, MAX_ARGS);    
 
     char *arg_list2[MAX_ARGS];
-    i = 0;
-    ptr = strtok(buffer[1], " ");
-    while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
-        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
-            arg_list2[i] = ptr;
-            i++;
-        }
-        ptr = strtok(NULL, " ");
-    }
-    arg_list2[i] = NULL;
+    obtener_args(buffer[1], arg_list2, MAX_ARGS);
 
     spawn_pipe(arg_list1, arg_list2);
 

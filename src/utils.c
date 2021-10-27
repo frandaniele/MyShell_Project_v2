@@ -166,6 +166,22 @@ void limpiar_zombies(){
     return;
 }
 
+void obtener_args(char* src, char** dst, int cant_args){
+    int i = 0;
+
+    char *ptr = strtok(src, " ");
+    while(ptr != NULL && i < cant_args-1){//guardo los demas argumentos, chequeo que no sean vacio
+        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
+            dst[i] = ptr;
+            i++;
+        }
+        ptr = strtok(NULL, " ");
+    }
+    dst[i] = NULL;
+
+    return;
+}
+
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
     int child_status;    
 
@@ -178,7 +194,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             return 1;
         case 0: 
             if(!segundo_plano) {
-                default_signals(SIG_DFL);
+                instalar_signals(SIG_DFL);
             }
 
             /* pruebo path absoluto */
@@ -220,7 +236,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 printf("[%i] %i\n", last_job(&head), child_pid);  
             }
             else{
-                instalar_signals();
+                instalar_signals(enviar_signal);
             
                 //Ejecuto en 1er plano
                 if(waitpid(child_pid, &child_status, WUNTRACED) == -1){
@@ -228,7 +244,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                     exit(1);
                 }
 
-                default_signals(SIG_IGN);
+                instalar_signals(SIG_IGN);
             }
     }
     return 0;
@@ -243,7 +259,7 @@ int spawn_pipe(char* argv1[], char* argv2[]){
             perror("Fork error");
             return 1;
         case 0: ;
-            default_signals(SIG_DFL);
+            instalar_signals(SIG_DFL);
             
             int fds[2];
             if(pipe(fds) != 0){
@@ -273,14 +289,14 @@ int spawn_pipe(char* argv1[], char* argv2[]){
                     exit(1);
             }
         default:
-            instalar_signals();
+            instalar_signals(enviar_signal);
 
             if(waitpid(pid, &child_status, WUNTRACED) == -1){
                 perror("Waitpid");
                 exit(1);
             }
 
-            default_signals(SIG_IGN);
+            instalar_signals(SIG_IGN);
     }
     return 0;
 }
@@ -365,15 +381,7 @@ void redireccionar_a_consola(){
     return;
 }
 
-void instalar_signals(){
-    signal(SIGINT, enviar_signal);
-    signal(SIGTSTP, enviar_signal);
-    signal(SIGQUIT, enviar_signal);
-
-    return;
-}
-
-void default_signals(__sighandler_t s){
+void instalar_signals(__sighandler_t s){
     signal(SIGINT, s);
     signal(SIGTSTP, s);
     signal(SIGQUIT, s);
