@@ -3,6 +3,7 @@
 static void enviar_signal(int sig);
 
 pid_t child_pid;
+static Node *head = NULL;
 
 void append_nodo(Node** head_ref, pid_t pid){
     Node* new_node = (Node*)malloc(sizeof(Node));
@@ -148,9 +149,25 @@ void get_hostname(char* dst){
     return;
 }
 
-int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
+void limpiar_zombies(){
     int child_status;
-    static Node *head = NULL;
+    pid_t zombie_pid;             
+    while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){                
+        printf("[%i]\t%i\t", eliminar_nodo(&head, zombie_pid), zombie_pid);
+        if(WIFEXITED(child_status)){
+            if(WEXITSTATUS(child_status) == 0)      printf("Done\n");
+            else    printf("terminated with error code\t%i\n", WEXITSTATUS(child_status));
+        }
+        if(WIFSIGNALED(child_status)){
+            printf("exited via signal\t%i\n", WTERMSIG(child_status));
+        }
+    }
+
+    return;
+}
+
+int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
+    int child_status;    
 
     /* Duplicate this process. */
 	child_pid = fork();
@@ -194,18 +211,8 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             /* returns only if an error occurs. */
             fprintf(stderr, "ERROR con programa %s: %s\n", program, strerror(errno));
             exit(1);
-        default:    ;
-            pid_t zombie_pid;             
-            while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){                
-                printf("[%i]\t%i\t", eliminar_nodo(&head, zombie_pid), zombie_pid);
-                if(WIFEXITED(child_status)){
-                    if(WEXITSTATUS(child_status) == 0)      printf("Done\n");
-                    else    printf("terminated with error code\t%i\n", WEXITSTATUS(child_status));
-                }
-                if(WIFSIGNALED(child_status)){
-                    printf("exited via signal\t%i\n", WTERMSIG(child_status));
-                }
-            }
+        default:    ;        
+            limpiar_zombies();
 
             if(segundo_plano){
                 //Ejecuto en 2do plano
@@ -354,20 +361,28 @@ void redireccionar_a_consola(){
         perror("ERROR al redireccionar la salida a la consola");
         exit(1);
     }
+
+    return;
 }
 
 void instalar_signals(){
     signal(SIGINT, enviar_signal);
     signal(SIGTSTP, enviar_signal);
     signal(SIGQUIT, enviar_signal);
+
+    return;
 }
 
 void default_signals(__sighandler_t s){
     signal(SIGINT, s);
     signal(SIGTSTP, s);
     signal(SIGQUIT, s);
+
+    return;
 }
 
 static void enviar_signal(int sig){
     kill(child_pid, sig);
+
+    return;
 }

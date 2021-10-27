@@ -42,7 +42,7 @@ void help_menu(FILE* stream, int exit_code);
 void get_env_var(char* dst, char* var);
 void get_hostname(char* dst);
 
-int procesar(char* program, char** arg_list, int n_args);
+void limpiar_zombies();
 
 /* Crea un proceso imagen y ejecuta program */
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args);

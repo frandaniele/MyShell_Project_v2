@@ -33,9 +33,6 @@ int main(int argc, char **argv){
 
             reemplazar_char(user_input, '\n');
             identificar_cmd(user_input);
-            
-            //posibilidad de limpiar zombies aca
-            //while(waitpid(-1, NULL, WNOHANG)>0) job--;
         }
     }
 

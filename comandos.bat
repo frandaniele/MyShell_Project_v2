@@ -9,12 +9,16 @@ echo Estás en $PWD. Ahora volverás al directorio anterior.
 cd -
 echo Estás en $PWD.
 echo Ahora vas a invocar un programa en 2do plano
-
 src/bin/app&
+sleep 1
 echo Como ves, puedes seguir ingresando comandos (en este caso ps) y se ejecutan inmediatamente
 ps &
 echo Ahora, invocas el mismo programa (app) en primer plano
 src/bin/app
 ps
 echo Este mensaje lo verás cuando termine de ejecutarse el programa anterior
-echo Hasta acá llegamos, chau!
+echo Veremos un ejemplo de pipe, ordenando con sort la salida de la ejecucion de ps
+ps | sort
+ps
+echo < mensaje.txt >> despedida.txt
+quit
