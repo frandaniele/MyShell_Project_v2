@@ -170,10 +170,7 @@ void eco(char* cmd){
 
     printf("\n");
 
-    if(freopen("/dev/tty", "w", stdout) == NULL){
-        perror("ERROR al redireccionar la salida a la consola");
-        exit(1);
-    }
+    redireccionar_a_consola();
 
     return;
 }
@@ -393,10 +390,7 @@ void redireccion_salida(char* cmd, int append){
 
     invocar(buffer[0]);
 
-    if(freopen("/dev/tty", "w", stdout) == NULL){
-        perror("ERROR al redireccionar la salida a la consola");
-        exit(1);
-    }
+    redireccionar_a_consola();
 
     for(int i = 0; i < to_free; i++){
         free(buffer[i]);        
@@ -434,10 +428,7 @@ void redireccion_doble(char* cmd, int append){
         return;
     }
 
-    if(freopen("/dev/tty", "w", stdout) == NULL){
-        perror("ERROR al redireccionar la salida a la consola");
-        exit(1);
-    }
+    redireccionar_a_consola();
 
     for(int i = 0; i < to_free1; i++){
         free(buffer1[i]);        

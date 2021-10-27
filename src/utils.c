@@ -157,8 +157,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
 
     switch(child_pid){
         case -1:
-            fprintf(stderr, "ERROR: fork");
-            perror("");
+            perror("ERROR: fork");
             return 1;
         case 0: 
             if(!segundo_plano) {
@@ -193,8 +192,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             ejecutar(program, arg_list, cant_args, path_actual);
             
             /* returns only if an error occurs. */
-            fprintf(stderr, "El programa %s no fue encontrado\n", program);
-            perror("");
+            fprintf(stderr, "ERROR con programa %s: %s\n", program, strerror(errno));
             exit(1);
         default:    ;
             pid_t zombie_pid;             
@@ -241,7 +239,7 @@ int spawn_pipe(char* argv1[], char* argv2[]){
     pid_t pid = fork();
     switch(pid){
         case -1:
-            perror("Fork error: ");
+            perror("Fork error");
             return 1;
         case 0: ;
             default_signals(SIG_DFL);
@@ -251,32 +249,38 @@ int spawn_pipe(char* argv1[], char* argv2[]){
 
             switch(gchild_pid){
                 case -1:
-                    perror("Fork error: ");
+                    perror("Fork error");
                     return 1;
                 case 0:
-                    close(fds[0]);// read_end
-                    dup2(fds[1], STDOUT_FILENO); // write_end
+                    close(fds[0]);
+                    printf("soy child nieto (%i - %s)\n", getpid(), argv1[0]);
+                    dup2(fds[1], 1);
+                    //close(fds[0]);
                     execvp(argv1[0], argv1);
-                    perror("EXEC error: ");
-                    close (fds[1]);
+
+                    perror("EXEC error");
+                    close(fds[1]);
                     exit(1);
                 default: ;
-                    char buf[4096]; 
-                    close(fds[1]); //write_edn
+                    //char buf[4096]; 
+                    //close(fds[1]); //write_edn
+                    close(fds[1]);
+                    dup2(fds[0], 0);
 
                     if(waitpid(gchild_pid, &gchild_status, WUNTRACED) == -1){
                         perror("Waitpid");
                         exit(1);
                     }
 
-                    read(fds[0], buf, 4096);
-                    close(fds[0]); 
+                    //close(fds[1]);
+                    printf("soy child padre (%i - %s), espero por pid %i\n", getpid(), argv2[0], gchild_pid);
                     execvp(argv2[0], argv2);
-                    perror("EXEC error: ");
+                    perror("EXEC error");
                     exit(1);
             }
         default:
             instalar_signals();
+            printf("soy el padre (%i), espero por pid %i\n", getpid(), pid);
 
             if(waitpid(pid, &child_status, WUNTRACED) == -1){
                 perror("Waitpid");
@@ -345,24 +349,25 @@ int reemplazar_stdout(char* file, int append){
     if(append){
         if(freopen(file, "a+", stdout) == NULL){
             perror("ERROR en redireccion de salida");
-            if(freopen("/dev/tty", "w", stdout) == NULL){
-                perror("ERROR al redireccionar la salida a la consola");
-                exit(1);
-            }
+            redireccionar_a_consola();
             return 1;
         }
     }
     else{
         if(freopen(file, "w", stdout) == NULL){
             perror("ERROR en redireccion de salida");
-            if(freopen("/dev/tty", "w", stdout) == NULL){
-                perror("ERROR al redireccionar la salida a la consola");
-                exit(1);
-            }
+            redireccionar_a_consola();
             return 1;
         }
     }
     return 0;
+}
+
+void redireccionar_a_consola(){
+    if(freopen("/dev/tty", "w", stdout) == NULL){
+        perror("ERROR al redireccionar la salida a la consola");
+        exit(1);
+    }
 }
 
 void instalar_signals(){

@@ -71,6 +71,8 @@ int obtener_io(char* cmd, char** programs, char* ch);
 
 int reemplazar_stdout(char* file, int append);
 
+void redireccionar_a_consola();
+
 void default_signals(__sighandler_t s);
 
 void instalar_signals();
