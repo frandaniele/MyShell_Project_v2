@@ -230,12 +230,6 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
 int spawn_pipe(char* argv1[], char* argv2[]){
     int child_status;
 
-    int fds[2];
-    if(pipe(fds) != 0){
-        perror("ERROR pipe");
-        return 1;
-    }
-
     pid_t pid = fork();
     switch(pid){
         case -1:
@@ -244,7 +238,11 @@ int spawn_pipe(char* argv1[], char* argv2[]){
         case 0: ;
             default_signals(SIG_DFL);
             
-            int gchild_status;
+            int fds[2];
+            if(pipe(fds) != 0){
+                perror("ERROR pipe");
+                return 1;
+            }
             pid_t gchild_pid = fork();
 
             switch(gchild_pid){
@@ -253,34 +251,22 @@ int spawn_pipe(char* argv1[], char* argv2[]){
                     return 1;
                 case 0:
                     close(fds[0]);
-                    printf("soy child nieto (%i - %s)\n", getpid(), argv1[0]);
-                    dup2(fds[1], 1);
-                    //close(fds[0]);
+                    dup2(fds[1], STDOUT_FILENO);
                     execvp(argv1[0], argv1);
 
                     perror("EXEC error");
                     close(fds[1]);
                     exit(1);
                 default: ;
-                    //char buf[4096]; 
-                    //close(fds[1]); //write_edn
                     close(fds[1]);
-                    dup2(fds[0], 0);
+                    dup2(fds[0], STDIN_FILENO);
 
-                    if(waitpid(gchild_pid, &gchild_status, WUNTRACED) == -1){
-                        perror("Waitpid");
-                        exit(1);
-                    }
-
-                    //close(fds[1]);
-                    printf("soy child padre (%i - %s), espero por pid %i\n", getpid(), argv2[0], gchild_pid);
                     execvp(argv2[0], argv2);
                     perror("EXEC error");
                     exit(1);
             }
         default:
             instalar_signals();
-            printf("soy el padre (%i), espero por pid %i\n", getpid(), pid);
 
             if(waitpid(pid, &child_status, WUNTRACED) == -1){
                 perror("Waitpid");
