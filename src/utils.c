@@ -148,19 +148,11 @@ void get_hostname(char* dst){
     return;
 }
 
-int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int hay_pipe, char* buf){
+int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
     int child_status;
     static Node *head = NULL;
-    int fds[2];
 
-    if(hay_pipe){
-        if(pipe(fds) != 0){
-            perror("ERROR pipe");
-            return 1;
-        }
-    }
-
-	/* Duplicate this process. */
+    /* Duplicate this process. */
 	child_pid = fork();
 
     switch(child_pid){
@@ -170,15 +162,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
             return 1;
         case 0: 
             if(!segundo_plano) {
-                /*instalo signals */
-                signal(SIGINT, SIG_DFL);
-                signal(SIGTSTP, SIG_DFL);
-                signal(SIGQUIT, SIG_DFL);
-
-                if(hay_pipe){
-                    close(fds[0]);// read_end
-                    dup2(fds[1], STDOUT_FILENO); // write_end
-                }
+                default_signals(SIG_DFL);
             }
 
             /* pruebo path absoluto */
@@ -209,7 +193,6 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
             ejecutar(program, arg_list, cant_args, path_actual);
             
             /* returns only if an error occurs. */
-            if(hay_pipe) close (fds[1]);
             fprintf(stderr, "El programa %s no fue encontrado\n", program);
             perror("");
             exit(1);
@@ -232,27 +215,75 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int 
                 printf("[%i] %i\n", last_job(&head), child_pid);  
             }
             else{
-                /*instalo signals */
-                signal(SIGINT, enviar_signal);
-                signal(SIGTSTP, enviar_signal);
-                signal(SIGQUIT, enviar_signal);
+                instalar_signals();
             
-
                 //Ejecuto en 1er plano
-                if(waitpid(child_pid, &child_status, WUNTRACED) == -1) {
+                if(waitpid(child_pid, &child_status, WUNTRACED) == -1){
                     perror("Waitpid");
                     exit(1);
                 }
 
-                if(hay_pipe){
-                    close(fds[1]); //write_edn
-                    read(fds[0], buf, 4096);
-                }
-                /*instalo signals */
-                signal(SIGINT, SIG_IGN);
-                signal(SIGTSTP, SIG_IGN);
-                signal(SIGQUIT, SIG_IGN);
+                default_signals(SIG_IGN);
             }
+    }
+    return 0;
+}
+
+int spawn_pipe(char* argv1[], char* argv2[]){
+    int child_status;
+
+    int fds[2];
+    if(pipe(fds) != 0){
+        perror("ERROR pipe");
+        return 1;
+    }
+
+    pid_t pid = fork();
+    switch(pid){
+        case -1:
+            perror("Fork error: ");
+            return 1;
+        case 0: ;
+            default_signals(SIG_DFL);
+            
+            int gchild_status;
+            pid_t gchild_pid = fork();
+
+            switch(gchild_pid){
+                case -1:
+                    perror("Fork error: ");
+                    return 1;
+                case 0:
+                    close(fds[0]);// read_end
+                    dup2(fds[1], STDOUT_FILENO); // write_end
+                    execvp(argv1[0], argv1);
+                    perror("EXEC error: ");
+                    close (fds[1]);
+                    exit(1);
+                default: ;
+                    char buf[4096]; 
+                    close(fds[1]); //write_edn
+
+                    if(waitpid(gchild_pid, &gchild_status, WUNTRACED) == -1){
+                        perror("Waitpid");
+                        exit(1);
+                    }
+
+                    read(fds[0], buf, 4096);
+                    close(fds[0]); 
+                    execvp(argv2[0], argv2);
+                    perror("EXEC error: ");
+                    exit(1);
+            }
+        default:
+            instalar_signals();
+
+            if(waitpid(pid, &child_status, WUNTRACED) == -1){
+                perror("Waitpid");
+                exit(1);
+            }
+
+            default_signals(SIG_IGN);
     }
     return 0;
 }
@@ -332,6 +363,18 @@ int reemplazar_stdout(char* file, int append){
         }
     }
     return 0;
+}
+
+void instalar_signals(){
+    signal(SIGINT, enviar_signal);
+    signal(SIGTSTP, enviar_signal);
+    signal(SIGQUIT, enviar_signal);
+}
+
+void default_signals(__sighandler_t s){
+    signal(SIGINT, s);
+    signal(SIGTSTP, s);
+    signal(SIGQUIT, s);
 }
 
 static void enviar_signal(int sig){

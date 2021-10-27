@@ -42,8 +42,12 @@ void help_menu(FILE* stream, int exit_code);
 void get_env_var(char* dst, char* var);
 void get_hostname(char* dst);
 
+int procesar(char* program, char** arg_list, int n_args);
+
 /* Crea un proceso imagen y ejecuta program */
-int spawn(char* program, char** arg_list, int segundo_plano, int cant_args, int pipe, char* buf);
+int spawn(char* program, char** arg_list, int segundo_plano, int cant_args);
+
+int spawn_pipe(char* argv1[], char* argv2[]);
 
 /* Detecta el ampersand que determina la ejecucion en 2do plano */
 int identificar_seg_plano(char* str);
@@ -66,3 +70,7 @@ int hay_redireccion(char* command);
 int obtener_io(char* cmd, char** programs, char* ch);
 
 int reemplazar_stdout(char* file, int append);
+
+void default_signals(__sighandler_t s);
+
+void instalar_signals();

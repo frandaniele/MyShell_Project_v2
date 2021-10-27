@@ -24,10 +24,7 @@ int main(int argc, char **argv){
         char path[256];
         char user_input[256];
 
-        /*instalo signals */
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
-        signal(SIGQUIT, SIG_IGN);
+        default_signals(SIG_IGN);
 
         while(1) {
             print_cmdline_prompt(username, hostname, path);
@@ -89,15 +86,15 @@ void identificar_cmd(char* cmd){
     }
     else if(strcmp(cmd, "") == 0){}
     else{
-        invocar(cmd, 0, "");
+        invocar(cmd);
     }
     return;
 }
 
-int invocar(char* program, int hay_pipe, char* buf){
-    const int MAX_ARGS = 4;
+int invocar(char* program){
+    char *arg_list[4];
     int i = 1;
-    char *arg_list[MAX_ARGS];
+    const int MAX_ARGS = 4;
     char aux[256] = "";
 
     char *ptr = strtok(program, " ");
@@ -118,7 +115,7 @@ int invocar(char* program, int hay_pipe, char* buf){
 
     int segundo_plano = identificar_seg_plano(arg_list[i-1]);
     if(strcmp(arg_list[i-1],"") == 0) i--;//si llame con & separado lo identifico
-    spawn(program, arg_list, segundo_plano, i, hay_pipe, buf);//llamo funcion para ejecutar programa
+    spawn(program, arg_list, segundo_plano, i);//llamo funcion para ejecutar programa
 
     return 0;
 }
@@ -241,22 +238,42 @@ int leer_batchfile(char* file){
 }
 
 void tuberia(char* cmd){
-    char* buffer[4];
+    char* buffer[10];    
     int to_free;
     if((to_free = obtener_io(cmd, buffer, "|"))<0)  return;
 
-    char result[4096];
+    const int MAX_ARGS = 10;
+    char *arg_list1[MAX_ARGS];
+    int i = 0;
 
-    invocar(buffer[0], 1, result);
-    //free(buffer[0]);
-    for(int i=1; i<to_free; i++){        
-        add_inputfile(buffer[i], result);
-        //free(buffer[i]);        
+    char *ptr = strtok(buffer[0], " ");
+    while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
+        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
+            arg_list1[i] = ptr;
+            i++;
+        }
+        ptr = strtok(NULL, " ");
+    }
+    arg_list1[i] = NULL;
+
+    char *arg_list2[MAX_ARGS];
+    i = 0;
+    ptr = strtok(buffer[1], " ");
+    while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
+        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
+            arg_list2[i] = ptr;
+            i++;
+        }
+        ptr = strtok(NULL, " ");
+    }
+    arg_list2[i] = NULL;
+
+    spawn_pipe(arg_list1, arg_list2);
+
+    for(int i=0; i<to_free; i++){        
+        free(buffer[i]);        
     }
 
-   /* for(int i = 0; i < to_free; i++){
-    } */
-        
     return;
 }
 
@@ -374,7 +391,7 @@ void redireccion_salida(char* cmd, int append){
         return;
     }
 
-    invocar(buffer[0], 0, "");
+    invocar(buffer[0]);
 
     if(freopen("/dev/tty", "w", stdout) == NULL){
         perror("ERROR al redireccionar la salida a la consola");
@@ -434,20 +451,16 @@ void redireccion_doble(char* cmd, int append){
 }
 
 int add_inputfile(char* program, char* input){
-    if(strlen(program) == 0 || strlen(input) == 0)   
-        return 1;
+    if(strlen(program) == 0 || strlen(input) == 0) return 1;
 
     char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);
-    if((aux == NULL) == 0)   
-        return 1;
-    printf("%s\n", program);
+    if(aux == NULL)  return 1;
+
     strcpy(aux, program);
     strcat(aux, " ");
     strcat(aux, input);
-    printf("%s\n", input);
-    printf("%s\n", aux);
 
-    invocar(aux, 0, "");
+    invocar(aux);
 
     free(aux);
 
