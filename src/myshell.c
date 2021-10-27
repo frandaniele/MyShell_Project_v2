@@ -163,7 +163,7 @@ void eco(char* cmd){
         }
     }
     printf("\n");
-
+    redireccionar_a_consola();
     return;
 }
 
@@ -229,22 +229,24 @@ int leer_batchfile(char* file){
 void tuberia(char* cmd){
     char* buffer[10];    
     int to_free;
-    if((to_free = obtener_io(cmd, buffer, "|"))<0)  return;
+    if((to_free = obtener_io(cmd, buffer, "|"))<0)  return; // me da los programas con sus arg a ejecutar
 
-    const int MAX_ARGS = 10;
-
-    char *arg_list1[MAX_ARGS];
-    obtener_args(buffer[0], arg_list1, MAX_ARGS);    
-
-    char *arg_list2[MAX_ARGS];
-    obtener_args(buffer[1], arg_list2, MAX_ARGS);
-
-    spawn_pipe(arg_list1, arg_list2);
-
-    for(int i=0; i<to_free; i++){        
-        free(buffer[i]);        
+    const int MAX_PIPE = 10;
+    char **programs[MAX_PIPE];
+    for(int j=0; j<to_free; j++){
+        char** arg_list = obtener_args(buffer[j]);    // me arma la lista del prog para pasarle a execvp
+        programs[j] = arg_list;
     }
+    
+    spawn_pipe(programs[0], programs[1]);
 
+    int i = 0;     
+    while(programs[i] && i < to_free){
+        if(programs[i]) free(programs[i]); //libero lo alocado en obtener_args
+        if(buffer[i]) free(buffer[i]); //libero lo alocado en obtener_io        
+        i++;
+    }
+    
     return;
 }
 
@@ -266,8 +268,7 @@ void redireccionar(char* cmd, int flag_eco){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
-                eco(txt);
-                redireccionar_a_consola();
+                eco(txt);                
             }
             else redireccion_doble(cmd, 1);
         }
@@ -284,20 +285,17 @@ void redireccionar(char* cmd, int flag_eco){
                     return;
                 }
                 eco(txt);
-                redireccionar_a_consola();
             }
             else redireccion_doble(cmd, 0);
         }
     }
     else if(strchr(cmd, '<')){
-        printf("voy a redireccionar la entrada\n");
         if(flag_eco){
             char *file = strtok(cmd, "<");
             strcpy(cmd, "");
             char txt[1024];
             if(read_text_file(trimwhitespace(file), 1024, txt)) return;
             eco(txt);
-            redireccionar_a_consola();
         }
         else redireccion_entrada(cmd);
     }

@@ -164,20 +164,23 @@ void limpiar_zombies(){
     return;
 }
 
-void obtener_args(char* src, char** dst, int cant_args){
+char** obtener_args(char* src){
+    const int MAX_ARGS = 10;
     int i = 0;
+    
+    char **arg_list = malloc(sizeof(char*)*MAX_ARGS);
 
     char *ptr = strtok(src, " ");
-    while(ptr != NULL && i < cant_args-1){//guardo los demas argumentos, chequeo que no sean vacio
+    while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
         if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
-            dst[i] = ptr;
+            arg_list[i] = ptr;
             i++;
         }
         ptr = strtok(NULL, " ");
     }
-    dst[i] = NULL;
+    arg_list[i] = NULL;
 
-    return;
+    return arg_list;
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){

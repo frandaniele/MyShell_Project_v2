@@ -42,7 +42,7 @@ void help_menu(FILE* stream, int exit_code);
 void get_env_var(char* dst, char* var);
 void get_hostname(char* dst);
 
-void obtener_args(char* src, char** dst, int cant_args);
+char** obtener_args(char* src);
 
 void limpiar_zombies();
 
