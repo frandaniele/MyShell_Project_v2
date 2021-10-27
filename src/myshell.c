@@ -73,7 +73,8 @@ void identificar_cmd(char* cmd){
         cambiar_dir(cmd+3); //offset de 3 char para pasar solo argumento de llamada
     }
     else if(strcmp(cmd, "echo") == 0 || strncmp("echo ", cmd, 5) == 0 || strncmp("echo\t", cmd, 5) == 0){
-        eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
+        if(hay_redireccion(cmd+5)) redireccionar(cmd+5, 1);
+        else eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
     }
     else if(hay_redireccion(cmd)){
         redireccionar(cmd, 0);
@@ -119,9 +120,6 @@ int invocar(char* program){
 
 void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
-    
-    if(hay_redireccion(cmd)) redireccionar(cmd, 1);
-    
     if(strcmp(cmd, "")){//input = echo comentario|variable
         int i;
 
@@ -164,10 +162,7 @@ void eco(char* cmd){
             else break;
         }
     }
-
     printf("\n");
-
-    redireccionar_a_consola();
 
     return;
 }
@@ -253,14 +248,14 @@ void tuberia(char* cmd){
     return;
 }
 
-void redireccionar(char* cmd, int eco){
+void redireccionar(char* cmd, int flag_eco){
     if(strchr(cmd, '<') && strchr(cmd, '>')){
         if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
             if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
-            if(eco){
+            if(flag_eco){
                 char *file = strtok(cmd, "<");
                 strcpy(cmd, "");
                 file = strtok(file, ">>");
@@ -271,12 +266,13 @@ void redireccionar(char* cmd, int eco){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
-                printf("%s",txt);
+                eco(txt);
+                redireccionar_a_consola();
             }
             else redireccion_doble(cmd, 1);
         }
         else{
-            if(eco){                
+            if(flag_eco){                
                 char *file = strtok(cmd, "<");
                 strcpy(cmd, "");
                 file = strtok(file, ">");
@@ -287,18 +283,21 @@ void redireccionar(char* cmd, int eco){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
-                printf("%s",txt);
+                eco(txt);
+                redireccionar_a_consola();
             }
             else redireccion_doble(cmd, 0);
         }
     }
     else if(strchr(cmd, '<')){
-        if(eco){
+        printf("voy a redireccionar la entrada\n");
+        if(flag_eco){
             char *file = strtok(cmd, "<");
             strcpy(cmd, "");
             char txt[1024];
             if(read_text_file(trimwhitespace(file), 1024, txt)) return;
-            printf("%s\n", txt);
+            eco(txt);
+            redireccionar_a_consola();
         }
         else redireccion_entrada(cmd);
     }
@@ -308,7 +307,7 @@ void redireccionar(char* cmd, int eco){
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
-            if(eco){
+            if(flag_eco){
                 char *file = strtok(cmd, ">");
                 file = strtok(NULL, ">");
                 if(reemplazar_stdout(trimwhitespace(file), 1)){
@@ -319,7 +318,7 @@ void redireccionar(char* cmd, int eco){
             else redireccion_salida(cmd, 1);
         }
         else{
-            if(eco){
+            if(flag_eco){
                 char *file = strtok(cmd, ">");
                 file = strtok(NULL, ">");
                 if(reemplazar_stdout(trimwhitespace(file), 0)){

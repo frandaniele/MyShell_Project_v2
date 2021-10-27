@@ -1,6 +1,6 @@
 echo Empezamos con el comando clear, esto no lo vas a ver en la terminal
 clr
-echo Hola $USER! Esta es mi shell. Actualmente te encontrás en $PWD.
+echo < bienvenida.txt
 echo Estás por intentar cambiar a un directorio inexistente.
 cd no_existe/
 echo Como viste, seguís en $PWD. Ahora vas a ir a /home
@@ -19,6 +19,5 @@ ps
 echo Este mensaje lo verás cuando termine de ejecutarse el programa anterior
 echo Veremos un ejemplo de pipe, ordenando con sort la salida de la ejecucion de ps
 ps | sort
-ps
 echo < mensaje.txt >> despedida.txt
 quit

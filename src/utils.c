@@ -75,17 +75,15 @@ int last_job(Node** head_ref){
 
 int read_text_file(char *directory, int size, char *buffer){
     FILE *fptr;
-    
     if((fptr = fopen(directory, "rb")) == NULL){
         fprintf(stderr, "Error! opening file\n");
         return 1;
     }
 
     int leer = 0;
-    while((leer = fread(buffer, size, 1, fptr)) > 0);
+    while((leer = fread(buffer, 1, size, fptr)) > 0);
 
     fclose(fptr); 
-    
     return 0;
 }
 
@@ -239,7 +237,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 instalar_signals(enviar_signal);
             
                 //Ejecuto en 1er plano
-                if(waitpid(child_pid, &child_status, WUNTRACED) == -1){
+                if(waitpid(child_pid, &child_status, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
                     perror("Waitpid");
                     exit(1);
                 }
@@ -291,7 +289,7 @@ int spawn_pipe(char* argv1[], char* argv2[]){
         default:
             instalar_signals(enviar_signal);
 
-            if(waitpid(pid, &child_status, WUNTRACED) == -1){
+            if(waitpid(pid, &child_status, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
                 perror("Waitpid");
                 exit(1);
             }
