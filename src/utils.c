@@ -267,47 +267,38 @@ int spawn_pipe(char*** processes, int n_processes){
             int fds[2];
             int fdin_viejo = 0;
 
-            while(n_processes > -1){
-            if(pipe(fds) != 0){
-                perror("ERROR pipe");
-                return 1;
-            }
-            pid_t gchild_pid = fork();
-
-            switch(gchild_pid){
-                case -1:
-                    perror("Fork error");
+            while(n_processes > 0){
+                if(pipe(fds) != 0){
+                    perror("ERROR pipe");
                     return 1;
-                case 0: ;
-                    //close(fds[0]);
-                    int proc_to_exec = n_processes-n_processes_left;
-                    printf("Executing %s\n", processes[proc_to_exec][0]);
-                    dup2(fdin_viejo, STDIN_FILENO);
-                    if((n_processes_left-1) != 0) dup2(fds[1], STDOUT_FILENO);
-                    //dup2(fds[1], STDOUT_FILENO);
-                    close(fds[0]);
-                    execvp(processes[proc_to_exec][0], processes[proc_to_exec]);
+                }
+                pid_t gchild_pid = fork();
 
-                    perror("EXEC error");
-                    close(fds[1]);
-                    exit(1);
-                default: ; 
-                    printf("proc to execute %i, left %i\n", n_processes, n_processes_left);
-                    printf("Espero a %i: %s\n", gchild_pid, processes[n_processes-n_processes_left][0]);
-                    if(waitpid(gchild_pid, NULL, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
-                        perror("Waitpid");
+                switch(gchild_pid){
+                    case -1:
+                        perror("Fork error");
+                        return 1;
+                    case 0: ;
+                        int proc_to_exec = n_processes-n_processes_left;
+                        dup2(fdin_viejo, STDIN_FILENO);
+                        if((n_processes_left-1) != 0) dup2(fds[1], STDOUT_FILENO);
+                        close(fds[0]);
+                        execvp(processes[proc_to_exec][0], processes[proc_to_exec]);
+
+                        perror("EXEC error");
+                        close(fds[1]);
                         exit(1);
-                    }           
-                    printf("Termino\n");  
-                    close(fds[1]);
-                    fdin_viejo = fds[0];
-                    n_processes_left--;
-                   // dup2(fds[0], STDIN_FILENO);
-
-                   // execvp(processes[1][0], processes[1]);
-                   // perror("EXEC error");
-                   // exit(0);
-            }}
+                    default: ; 
+                        if(waitpid(gchild_pid, NULL, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
+                            perror("Waitpid");
+                            exit(1);
+                        }           
+                        close(fds[1]);
+                        fdin_viejo = fds[0];
+                        n_processes_left--;
+                        if(n_processes_left == 0) exit(0);
+                }
+            }
         default:
             instalar_signals(enviar_signal);
 
