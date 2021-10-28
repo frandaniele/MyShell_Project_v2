@@ -163,6 +163,7 @@ void eco(char* cmd){
         }
     }
     printf("\n");
+
     redireccionar_a_consola();
     return;
 }
@@ -268,7 +269,11 @@ void redireccionar(char* cmd, int flag_eco){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
-                eco(txt);                
+                if(strlen(txt) != 0) eco(txt);
+                else{
+                    fprintf(stderr, "ERROR: archivo vacio\n");
+                    redireccionar_a_consola();
+                }
             }
             else redireccion_doble(cmd, 1);
         }
@@ -284,7 +289,11 @@ void redireccionar(char* cmd, int flag_eco){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
-                eco(txt);
+                if(strlen(txt) != 0) eco(txt);
+                else{
+                    fprintf(stderr, "ERROR: archivo vacio\n");
+                    redireccionar_a_consola();
+                }
             }
             else redireccion_doble(cmd, 0);
         }
@@ -295,7 +304,12 @@ void redireccionar(char* cmd, int flag_eco){
             strcpy(cmd, "");
             char txt[1024];
             if(read_text_file(trimwhitespace(file), 1024, txt)) return;
-            eco(txt);
+
+            if(strlen(txt) != 0) eco(txt);
+            else{
+                fprintf(stderr, "ERROR: archivo vacio\n");
+                redireccionar_a_consola();
+            }
         }
         else redireccion_entrada(cmd);
     }
@@ -307,22 +321,26 @@ void redireccionar(char* cmd, int flag_eco){
             }
             if(flag_eco){
                 char *file = strtok(cmd, ">");
+                char *msj = file;
                 file = strtok(NULL, ">");
                 if(reemplazar_stdout(trimwhitespace(file), 1)){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
+                eco(msj);
             }
             else redireccion_salida(cmd, 1);
         }
         else{
             if(flag_eco){
                 char *file = strtok(cmd, ">");
+                char *msj = file;
                 file = strtok(NULL, ">");
                 if(reemplazar_stdout(trimwhitespace(file), 0)){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
+                eco(msj);
             }
             else redireccion_salida(cmd, 0);
         }
