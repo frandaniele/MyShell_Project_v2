@@ -172,7 +172,7 @@ char** obtener_args(char* src){
 
     char *ptr = strtok(src, " ");
     while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
-        if(ptr != NULL && strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
+        if(strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
             arg_list[i] = ptr;
             i++;
         }
@@ -251,7 +251,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
     return 0;
 }
 
-int spawn_pipe(char* argv1[], char* argv2[]){
+int spawn_pipe(char*** processes, int n_processes){
     int child_status;
 
     pid_t pid = fork();
@@ -261,8 +261,13 @@ int spawn_pipe(char* argv1[], char* argv2[]){
             return 1;
         case 0: ;
             instalar_signals(SIG_DFL);
-            
+
+            int n_processes_left = n_processes;
+
             int fds[2];
+            int fdin_viejo = 0;
+
+            while(n_processes > -1){
             if(pipe(fds) != 0){
                 perror("ERROR pipe");
                 return 1;
@@ -273,22 +278,36 @@ int spawn_pipe(char* argv1[], char* argv2[]){
                 case -1:
                     perror("Fork error");
                     return 1;
-                case 0:
+                case 0: ;
+                    //close(fds[0]);
+                    int proc_to_exec = n_processes-n_processes_left;
+                    printf("Executing %s\n", processes[proc_to_exec][0]);
+                    dup2(fdin_viejo, STDIN_FILENO);
+                    if((n_processes_left-1) != 0) dup2(fds[1], STDOUT_FILENO);
+                    //dup2(fds[1], STDOUT_FILENO);
                     close(fds[0]);
-                    dup2(fds[1], STDOUT_FILENO);
-                    execvp(argv1[0], argv1);
+                    execvp(processes[proc_to_exec][0], processes[proc_to_exec]);
 
                     perror("EXEC error");
                     close(fds[1]);
                     exit(1);
-                default: ;
+                default: ; 
+                    printf("proc to execute %i, left %i\n", n_processes, n_processes_left);
+                    printf("Espero a %i: %s\n", gchild_pid, processes[n_processes-n_processes_left][0]);
+                    if(waitpid(gchild_pid, NULL, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
+                        perror("Waitpid");
+                        exit(1);
+                    }           
+                    printf("Termino\n");  
                     close(fds[1]);
-                    dup2(fds[0], STDIN_FILENO);
+                    fdin_viejo = fds[0];
+                    n_processes_left--;
+                   // dup2(fds[0], STDIN_FILENO);
 
-                    execvp(argv2[0], argv2);
-                    perror("EXEC error");
-                    exit(1);
-            }
+                   // execvp(processes[1][0], processes[1]);
+                   // perror("EXEC error");
+                   // exit(0);
+            }}
         default:
             instalar_signals(enviar_signal);
 
@@ -341,18 +360,14 @@ int obtener_io(char* cmd, char** programs, char* ch){
     char *ptr = strtok(cmd, ch);
     int i = 0;
     while(ptr != NULL && i<sizeof(programs)){
-        if(ptr != NULL){
-            programs[i] = malloc(strlen(ptr));
-            strcpy(programs[i], trimwhitespace(ptr));
-            i++;
-            ptr = strtok(NULL, ch);
-        }
-        else{
-            return -1;
-        }
+        programs[i] = malloc(strlen(ptr));
+        strcpy(programs[i], trimwhitespace(ptr));
+        i++;
+        ptr = strtok(NULL, ch);
     } 
 
-    return i; //n de elementos alocados
+    if(i==0)    return -1; //no se aloco 
+    else        return i; //n de elementos alocados
 }
 
 int reemplazar_stdout(char* file, int append){

@@ -228,21 +228,23 @@ int leer_batchfile(char* file){
 }
 
 void tuberia(char* cmd){
-    char* buffer[10];    
-    int to_free;
-    if((to_free = obtener_io(cmd, buffer, "|"))<0)  return; // me da los programas con sus arg a ejecutar
-
     const int MAX_PIPE = 10;
-    char **programs[MAX_PIPE];
+    char* buffer[MAX_PIPE];    
+    int to_free;
+    if((to_free = obtener_io(cmd, buffer, "|"))<2){ // me da los programas con sus arg a ejecutar
+        fprintf(stderr, "Incomplete pipe\n");
+        return;
+    }
+
+    char **programs[to_free];
     for(int j=0; j<to_free; j++){
         char** arg_list = obtener_args(buffer[j]);    // me arma la lista del prog para pasarle a execvp
         programs[j] = arg_list;
     }
     
-    spawn_pipe(programs[0], programs[1]);
+    spawn_pipe(programs, to_free);
 
-    int i = 0;     
-    while(programs[i] && i < to_free){
+    for(int i = 0; i < to_free; i++){
         if(programs[i]) free(programs[i]); //libero lo alocado en obtener_args
         if(buffer[i]) free(buffer[i]); //libero lo alocado en obtener_io        
         i++;
