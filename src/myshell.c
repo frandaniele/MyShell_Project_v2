@@ -120,46 +120,29 @@ int invocar(char* program){
 
 void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
+
     if(strcmp(cmd, "")){//input = echo comentario|variable
-        int i;
 
         char* ptr = strtok(cmd, " ");//leo palabra a palabra
-        if(ptr != NULL){
+        while(ptr != NULL){
             char ch = '\0';
-            i = 0;
-            while(isspace(*ptr)) i++;//elimino espacios
-            if(ptr[i] == '$'){//chequeo si es env var
-                if(ispunct(ptr[i+strlen(ptr)-1]) || isspace(ptr[i+strlen(ptr)-1])){
-                    ch = ptr[i+strlen(ptr)-1];
-                    reemplazar_char(ptr, ch);
-                }   
+
+            while(isspace(*ptr)) ptr++;
+            if(ptr[0] == '$'){
+                int i = 0;
+                while(isalpha((ptr+1)[i])){
+                    i++;
+                }
+                ch = ptr[i+1];
+                reemplazar_char(ptr, ch);
                 ptr = getenv(ptr+1);
-            }
+            }      
             if(ptr == NULL) ptr = "";
             printf("%s", ptr);
             if(ch != '\0') printf("%c ", ch);
             else printf(" ");
-        }
 
-        while(ptr != NULL){
             ptr = strtok(NULL, " ");
-            if(ptr != NULL){
-                i = 0;
-                char ch = '\0';
-                while(isspace(*ptr)) i++;
-                if(ptr[i] == '$'){
-                    if(ispunct(ptr[i+strlen(ptr)-1]) || isspace(ptr[i+strlen(ptr)-1])){
-                        ch = ptr[i+strlen(ptr)-1];
-                        reemplazar_char(ptr, ch);
-                    }   
-                    ptr = getenv(ptr+1);
-                }      
-                if(ptr == NULL) ptr = "";
-                printf("%s", ptr);
-                if(ch != '\0') printf("%c ", ch);
-                else printf(" ");
-            }
-            else break;
         }
     }
     printf("\n");
@@ -229,7 +212,8 @@ int leer_batchfile(char* file){
 
 void tuberia(char* cmd){
     const int MAX_PIPE = 10;
-    char* buffer[MAX_PIPE];    
+    char* buffer[MAX_PIPE]; 
+
     int to_free;
     if((to_free = obtener_io(cmd, buffer, "|"))<2){ // me da los programas con sus arg a ejecutar
         fprintf(stderr, "Incomplete pipe\n");
@@ -291,7 +275,7 @@ void redireccionar(char* cmd, int flag_eco){
                     fprintf(stderr, "No se pudo redireccionar\n");
                     return;
                 }
-                if(strlen(txt) != 0) eco(txt);
+                if(strlen(txt) > 0) eco(txt);
                 else{
                     fprintf(stderr, "ERROR: archivo vacio\n");
                     redireccionar_a_consola();
@@ -307,7 +291,7 @@ void redireccionar(char* cmd, int flag_eco){
             char txt[1024];
             if(read_text_file(trimwhitespace(file), 1024, txt)) return;
 
-            if(strlen(txt) != 0) eco(txt);
+            if(strlen(txt) > 0) eco(txt);
             else{
                 fprintf(stderr, "ERROR: archivo vacio\n");
                 redireccionar_a_consola();
@@ -361,6 +345,7 @@ void redireccion_entrada(char* cmd){
         fprintf(stderr, "ERROR: file is empty\n");
         return;
     }  
+    
     if(add_inputfile(buffer[0], buffer[1])){
         fprintf(stderr, "ERROR: no se pudo invocar\n");
         return;

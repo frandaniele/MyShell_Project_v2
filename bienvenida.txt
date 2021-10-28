@@ -1,0 +1,1 @@
+Hola $USER! Esta es mi shell. Estas en $PWD.
