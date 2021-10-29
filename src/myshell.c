@@ -334,7 +334,10 @@ void redireccion_salida(char* cmd, int append){
     char* buffer[2];
     int to_free;
 
-    if((to_free = obtener_io(cmd, buffer, ">"))<0)  return;
+    if((to_free = obtener_io(cmd, buffer, ">"))<2){ // debe haber 2 elementos alocados
+        fprintf(stderr, "ERROR: file is empty\n");
+        return;
+    }  
 
     if(reemplazar_stdout(buffer[1], append)){
         fprintf(stderr, "No se pudo redireccionar\n");
@@ -357,7 +360,10 @@ void redireccion_doble(char* cmd, int append){
     char *input, *output, *program;
     int to_free1, to_free2;
     
-    if((to_free1 = obtener_io(cmd, buffer1, ">"))<0)  return;
+    if((to_free1 = obtener_io(cmd, buffer1, ">"))<2){ // debe haber 2 elementos alocados
+        fprintf(stderr, "ERROR: file is empty\n");
+        return;
+    }  
     if(strchr(buffer1[0], '<')){
         if((to_free2 = obtener_io(buffer1[0], buffer2, "<"))<0)  return;
         input = buffer2[1];
@@ -365,7 +371,10 @@ void redireccion_doble(char* cmd, int append){
         program = buffer2[0];
     }
     else{
-        if((to_free2 = obtener_io(buffer1[1], buffer2, "<"))<0)  return;
+        if((to_free2 = obtener_io(buffer1[1], buffer2, "<"))<2){ // debe haber 2 elementos alocados
+            fprintf(stderr, "ERROR: file is empty\n");
+            return;
+        }  
         input = buffer2[1];
         output = buffer2[0];
         program = buffer1[0];

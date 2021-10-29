@@ -54,6 +54,8 @@ int spawn_pipe(char*** processes, int n_processes);
 /* Detecta el ampersand que determina la ejecucion en 2do plano */
 int identificar_seg_plano(char* str);
 
+void esperar_proceso(pid_t pid, int status);
+
 /* Ejecuta el programa  */
 void ejecutar(char* program, char** arg_list, int cant_args, char* path);
 

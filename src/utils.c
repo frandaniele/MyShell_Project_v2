@@ -184,7 +184,7 @@ char** obtener_args(char* src){
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
-    int child_status;    
+    int child_status = 0;    
 
     /* Duplicate this process. */
 	child_pid = fork();
@@ -206,24 +206,17 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
             char *ptr = strtok(paths, ":");
             char aux[256];
 
-            strcpy(aux,ptr);
-            strcat(aux,program);
-            ejecutar(program, arg_list, cant_args, aux);
-
             while(ptr != NULL){
+                strcpy(aux,ptr);
+                strcat(aux,program);
+                ejecutar(program, arg_list, cant_args, aux);
                 ptr = strtok(NULL, ":");
-                if(ptr != NULL){
-                    strcpy(aux,ptr);
-                    strcat(aux,program);
-                    ejecutar(program, arg_list, cant_args, aux);
-                }
             }
 
             /* busco en el path que me encuentro   */
-            char path_actual[128];
-            get_env_var(path_actual, "PWD");
-            strcat(path_actual,program);
-            ejecutar(program, arg_list, cant_args, path_actual);
+            get_env_var(aux, "PWD");
+            strcat(aux,program);
+            ejecutar(program, arg_list, cant_args, aux);
             
             /* returns only if an error occurs. */
             fprintf(stderr, "ERROR con programa %s: %s\n", program, strerror(errno));
@@ -236,23 +229,15 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 append_nodo(&head,child_pid);
                 printf("[%i] %i\n", last_job(&head), child_pid);  
             }
-            else{
-                instalar_signals(enviar_signal);
-            
-                //Ejecuto en 1er plano
-                if(waitpid(child_pid, &child_status, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
-                    perror("Waitpid");
-                    exit(1);
-                }
-
-                instalar_signals(SIG_IGN);
+            else{   //Ejecuto en 1er plano
+                esperar_proceso(child_pid, child_status);
             }
     }
     return 0;
 }
 
 int spawn_pipe(char*** processes, int n_processes){
-    int child_status;
+    int child_status = 0;
 
     pid_t pid = fork();
     switch(pid){
@@ -300,14 +285,7 @@ int spawn_pipe(char*** processes, int n_processes){
                 }
             }
         default:
-            instalar_signals(enviar_signal);
-
-            if(waitpid(pid, &child_status, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
-                perror("Waitpid");
-                exit(1);
-            }
-
-            instalar_signals(SIG_IGN);
+            esperar_proceso(pid, child_status);
     }
     return 0;
 }
@@ -326,6 +304,18 @@ void ejecutar(char* program, char** arg_list, int cant_args, char* path){
         execl(path, program, arg_list[1], arg_list[2], arg_list[3], (char*) NULL);
     }	
     return;
+}
+
+void esperar_proceso(pid_t pid, int status){
+    instalar_signals(enviar_signal);
+            
+    if(waitpid(pid, &status, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
+        perror("Waitpid");
+        instalar_signals(SIG_IGN);
+        exit(1);
+    }
+
+    instalar_signals(SIG_IGN);
 }
 
 /*  Esta funcion devuelve 1 si encuentra '&' y lo reemplaza por '\0'. 
@@ -362,20 +352,17 @@ int obtener_io(char* cmd, char** programs, char* ch){
 }
 
 int reemplazar_stdout(char* file, int append){
-    if(append){
-        if(freopen(file, "a+", stdout) == NULL){
-            perror("ERROR en redireccion de salida");
-            redireccionar_a_consola();
-            return 1;
-        }
+    char mode[3];
+    
+    if(append) strcpy(mode, "a+");
+    else strcpy(mode, "w");
+
+    if(freopen(file, mode, stdout) == NULL){
+        perror("ERROR en redireccion de salida");
+        redireccionar_a_consola();
+        return 1;
     }
-    else{
-        if(freopen(file, "w", stdout) == NULL){
-            perror("ERROR en redireccion de salida");
-            redireccionar_a_consola();
-            return 1;
-        }
-    }
+
     return 0;
 }
 
