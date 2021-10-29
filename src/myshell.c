@@ -24,6 +24,8 @@ int main(int argc, char **argv){
         char path[256];
         char user_input[256];
 
+        instalar_signals(SIG_IGN);
+
         while(1) {
             print_cmdline_prompt(username, hostname, path);
             
@@ -31,9 +33,6 @@ int main(int argc, char **argv){
 
             reemplazar_char(user_input, '\n');
             identificar_cmd(user_input);
-            
-            //posibilidad de limpiar zombies aca
-            //while(waitpid(-1, NULL, WNOHANG)>0) job--;
         }
     }
 
@@ -74,7 +73,14 @@ void identificar_cmd(char* cmd){
         cambiar_dir(cmd+3); //offset de 3 char para pasar solo argumento de llamada
     }
     else if(strcmp(cmd, "echo") == 0 || strncmp("echo ", cmd, 5) == 0 || strncmp("echo\t", cmd, 5) == 0){
-        eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
+        if(hay_redireccion(cmd+5)) redireccionar(cmd+5, 1);
+        else eco(cmd+5); //offset de 5 char para pasar solo argumento de llamada
+    }
+    else if(hay_redireccion(cmd)){
+        redireccionar(cmd, 0);
+    }
+    else if(strchr(cmd, '|')){
+        tuberia(cmd);
     }
     else if(strcmp(cmd, "") == 0){}
     else{
@@ -84,9 +90,9 @@ void identificar_cmd(char* cmd){
 }
 
 int invocar(char* program){
-    const int MAX_ARGS = 4;
+    char *arg_list[4];
     int i = 1;
-    char *arg_list[MAX_ARGS];
+    const int MAX_ARGS = 4;
     char aux[256] = "";
 
     char *ptr = strtok(program, " ");
@@ -114,47 +120,34 @@ int invocar(char* program){
 
 void eco(char* cmd){
     while(isspace(*cmd)) cmd++;
-    
+
     if(strcmp(cmd, "")){//input = echo comentario|variable
-        int i;
 
         char* ptr = strtok(cmd, " ");//leo palabra a palabra
-        if(ptr != NULL){
-            char ch = '\0';
-            i = 0;
-            while(isspace(*ptr)) i++;//elimino espacios
-            if(ptr[i] == '$'){//chequeo si es env var
-                if(ispunct(ptr[i+strlen(ptr)-1])){
-                    ch = ptr[i+strlen(ptr)-1];
-                    reemplazar_char(ptr, ch);
-                }   
-                ptr = getenv(ptr+1);
-            }
-            if(ptr == NULL) ptr = "";
-            printf("%s%c ", ptr, ch);
-        }
-
         while(ptr != NULL){
+            char ch = '\0';
+
+            while(isspace(*ptr)) ptr++;
+            if(ptr[0] == '$'){
+                int i = 0;
+                while(isalpha((ptr+1)[i])){
+                    i++;
+                }
+                ch = ptr[i+1];
+                reemplazar_char(ptr, ch);
+                ptr = getenv(ptr+1);
+            }      
+            if(ptr == NULL) ptr = "";
+            printf("%s", ptr);
+            if(ch != '\0') printf("%c ", ch);
+            else printf(" ");
+
             ptr = strtok(NULL, " ");
-            if(ptr != NULL){
-                i = 0;
-                char ch = '\0';
-                while(isspace(*ptr)) i++;
-                if(ptr[i] == '$'){
-                    if(ispunct(ptr[i+strlen(ptr)-1])){
-                        ch = ptr[i+strlen(ptr)-1];
-                        reemplazar_char(ptr, ch);
-                    }   
-                    ptr = getenv(ptr+1);
-                }      
-                if(ptr == NULL) ptr = "";
-                printf("%s%c ", ptr, ch);
-            }
-            else break;
         }
     }
-
     printf("\n");
+
+    redireccionar_a_consola();
     return;
 }
 
@@ -172,7 +165,6 @@ int cambiar_dir(char* dir){
             return 1;
         }
     }
-    
     //input = cd directorio
     if(chdir(dir) != 0){
         fprintf(stderr, "ERROR: El directorio no está presente o no existe.\n");
@@ -213,6 +205,235 @@ int leer_batchfile(char* file){
     }
 
     fclose(fp);
+
+    return 0;
+}
+
+void tuberia(char* cmd){
+    const int MAX_PIPE = 10;
+    char* buffer[MAX_PIPE]; 
+
+    int to_free;
+    if((to_free = obtener_io(cmd, buffer, "|"))<2){ // me da los programas con sus arg a ejecutar
+        fprintf(stderr, "Incomplete pipe\n");
+        return;
+    }
+
+    char **programs[to_free];
+    for(int j=0; j<to_free; j++){
+        char** arg_list = obtener_args(buffer[j]);    // me arma la lista del prog para pasarle a execvp
+        programs[j] = arg_list;
+    }
+    
+    spawn_pipe(programs, to_free);
+
+    for(int i = 0; i < to_free; i++){
+        if(programs[i]) free(programs[i]); //libero lo alocado en obtener_args
+        if(buffer[i]) free(buffer[i]); //libero lo alocado en obtener_io        
+        i++;
+    }
+    
+    return;
+}
+
+void redireccionar(char* cmd, int flag_eco){
+    if(strchr(cmd, '<') && strchr(cmd, '>')){
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+                fprintf(stderr, "Error de sintaxis\n");
+                return;
+            }
+            if(flag_eco){
+                char *file = strtok(cmd, "<");
+                strcpy(cmd, "");
+                file = strtok(file, ">>");
+                char txt[1024];
+                if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+                file = strtok(NULL, ">>");
+                if(reemplazar_stdout(trimwhitespace(file), 1)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+                if(strlen(txt) != 0) eco(txt);
+                else{
+                    fprintf(stderr, "ERROR: archivo vacio\n");
+                    redireccionar_a_consola();
+                }
+            }
+            else redireccion_doble(cmd, 1);
+        }
+        else{
+            if(flag_eco){                
+                char *file = strtok(cmd, "<");
+                strcpy(cmd, "");
+                file = strtok(file, ">");
+                char txt[1024];
+                if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+                file = strtok(NULL, ">");
+                if(reemplazar_stdout(trimwhitespace(file), 0)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+                if(strlen(txt) > 0) eco(txt);
+                else{
+                    fprintf(stderr, "ERROR: archivo vacio\n");
+                    redireccionar_a_consola();
+                }
+            }
+            else redireccion_doble(cmd, 0);
+        }
+    }
+    else if(strchr(cmd, '<')){
+        if(flag_eco){
+            char *file = strtok(cmd, "<");
+            strcpy(cmd, "");
+            char txt[1024];
+            if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+
+            if(strlen(txt) > 0) eco(txt);
+            else{
+                fprintf(stderr, "ERROR: archivo vacio\n");
+                redireccionar_a_consola();
+            }
+        }
+        else redireccion_entrada(cmd);
+    }
+    else if(strchr(cmd, '>')){
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+                fprintf(stderr, "Error de sintaxis\n");
+                return;
+            }
+            if(flag_eco){
+                char *file = strtok(cmd, ">");
+                char *msj = file;
+                file = strtok(NULL, ">");
+                if(reemplazar_stdout(trimwhitespace(file), 1)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+                eco(msj);
+            }
+            else redireccion_salida(cmd, 1);
+        }
+        else{
+            if(flag_eco){
+                char *file = strtok(cmd, ">");
+                char *msj = file;
+                file = strtok(NULL, ">");
+                if(reemplazar_stdout(trimwhitespace(file), 0)){
+                    fprintf(stderr, "No se pudo redireccionar\n");
+                    return;
+                }
+                eco(msj);
+            }
+            else redireccion_salida(cmd, 0);
+        }
+    }
+    else{
+        fprintf(stderr, "Error inesperado redireccionando\n");
+    }
+    return;
+}
+
+void redireccion_entrada(char* cmd){
+    char* buffer[2];
+    int to_free;
+    
+    if((to_free = obtener_io(cmd, buffer, "<"))<2){ // debe haber 2 elementos alocados
+        fprintf(stderr, "ERROR: file is empty\n");
+        return;
+    }  
+    
+    if(add_inputfile(buffer[0], buffer[1])){
+        fprintf(stderr, "ERROR: no se pudo invocar\n");
+        return;
+    }
+
+    for(int i = 0; i < to_free; i++){
+        free(buffer[i]);        
+    } 
+
+    return;
+}
+
+void redireccion_salida(char* cmd, int append){
+    char* buffer[2];
+    int to_free;
+
+    if((to_free = obtener_io(cmd, buffer, ">"))<0)  return;
+
+    if(reemplazar_stdout(buffer[1], append)){
+        fprintf(stderr, "No se pudo redireccionar\n");
+        return;
+    }
+
+    invocar(buffer[0]);
+
+    redireccionar_a_consola();
+
+    for(int i = 0; i < to_free; i++){
+        free(buffer[i]);        
+    } 
+
+    return;
+}
+
+void redireccion_doble(char* cmd, int append){
+    char* buffer1[2], *buffer2[2];
+    char *input, *output, *program;
+    int to_free1, to_free2;
+    
+    if((to_free1 = obtener_io(cmd, buffer1, ">"))<0)  return;
+    if(strchr(buffer1[0], '<')){
+        if((to_free2 = obtener_io(buffer1[0], buffer2, "<"))<0)  return;
+        input = buffer2[1];
+        output = buffer1[1];
+        program = buffer2[0];
+    }
+    else{
+        if((to_free2 = obtener_io(buffer1[1], buffer2, "<"))<0)  return;
+        input = buffer2[1];
+        output = buffer2[0];
+        program = buffer1[0];
+    }
+
+    if(reemplazar_stdout(output, append)){
+        fprintf(stderr, "ERROR: No se pudo redireccionar\n");
+        return;
+    }
+
+    if(add_inputfile(program, input)){
+        fprintf(stderr, "ERROR: no se pudo invocar\n");
+        return;
+    }
+
+    redireccionar_a_consola();
+
+    for(int i = 0; i < to_free1; i++){
+        free(buffer1[i]);        
+    } 
+
+    for(int i = 0; i < to_free2; i++){
+        free(buffer2[i]);        
+    } 
+
+    return;
+}
+
+int add_inputfile(char* program, char* input){
+    if(strlen(program) == 0 || strlen(input) == 0) return 1;
+
+    char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);
+    if(aux == NULL)  return 1;
+
+    strcpy(aux, program);
+    strcat(aux, " ");
+    strcat(aux, input);
+
+    invocar(aux);
+
+    free(aux);
 
     return 0;
 }
