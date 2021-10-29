@@ -237,56 +237,39 @@ void tuberia(char* cmd){
 }
 
 void redireccionar(char* cmd, int flag_eco){
+    int append = 0;
+
     if(strchr(cmd, '<') && strchr(cmd, '>')){
         if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
             if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
-            if(flag_eco){
-                char *file = strtok(cmd, "<");
-                strcpy(cmd, "");
-                file = strtok(file, ">>");
-                char txt[1024];
-                if(read_text_file(trimwhitespace(file), 1024, txt)) return;
-                file = strtok(NULL, ">>");
-                if(reemplazar_stdout(trimwhitespace(file), 1)){
-                    fprintf(stderr, "No se pudo redireccionar\n");
-                    return;
-                }
-                if(strlen(txt) != 0) eco(txt);
-                else{
-                    fprintf(stderr, "ERROR: archivo vacio\n");
-                    redireccionar_a_consola();
-                }
-            }
-            else redireccion_doble(cmd, 1);
+            append = 1;
         }
-        else{
-            if(flag_eco){                
-                char *file = strtok(cmd, "<");
-                strcpy(cmd, "");
-                file = strtok(file, ">");
-                char txt[1024];
-                if(read_text_file(trimwhitespace(file), 1024, txt)) return;
-                file = strtok(NULL, ">");
-                if(reemplazar_stdout(trimwhitespace(file), 0)){
-                    fprintf(stderr, "No se pudo redireccionar\n");
-                    return;
-                }
-                if(strlen(txt) > 0) eco(txt);
-                else{
-                    fprintf(stderr, "ERROR: archivo vacio\n");
-                    redireccionar_a_consola();
-                }
+        if(flag_eco){
+            char *file = strtok(cmd, "<");
+            if(append) file = strtok(file, ">>");
+            else file = strtok(file, ">");
+            char txt[1024];
+            if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+            if(append) file = strtok(NULL, ">>");
+            else file = strtok(NULL, ">");
+            if(reemplazar_stdout(trimwhitespace(file), append)){
+                fprintf(stderr, "No se pudo redireccionar\n");
+                return;
             }
-            else redireccion_doble(cmd, 0);
+            if(strlen(txt) > 0) eco(txt);
+            else{
+                fprintf(stderr, "ERROR: archivo vacio\n");
+                redireccionar_a_consola();
+            }      
         }
+        else redireccion_doble(cmd, append);
     }
     else if(strchr(cmd, '<')){
         if(flag_eco){
             char *file = strtok(cmd, "<");
-            strcpy(cmd, "");
             char txt[1024];
             if(read_text_file(trimwhitespace(file), 1024, txt)) return;
 
@@ -304,35 +287,25 @@ void redireccionar(char* cmd, int flag_eco){
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
-            if(flag_eco){
-                char *file = strtok(cmd, ">");
-                char *msj = file;
-                file = strtok(NULL, ">");
-                if(reemplazar_stdout(trimwhitespace(file), 1)){
-                    fprintf(stderr, "No se pudo redireccionar\n");
-                    return;
-                }
-                eco(msj);
-            }
-            else redireccion_salida(cmd, 1);
+            append = 1;
         }
-        else{
-            if(flag_eco){
-                char *file = strtok(cmd, ">");
-                char *msj = file;
-                file = strtok(NULL, ">");
-                if(reemplazar_stdout(trimwhitespace(file), 0)){
-                    fprintf(stderr, "No se pudo redireccionar\n");
-                    return;
-                }
-                eco(msj);
+        if(flag_eco){
+            char *file = strtok(cmd, ">");
+            char *msj = file;
+            file = strtok(NULL, ">");
+            if(reemplazar_stdout(trimwhitespace(file), append)){
+                fprintf(stderr, "No se pudo redireccionar\n");
+                return;
             }
-            else redireccion_salida(cmd, 0);
+            eco(msj);
         }
+        else redireccion_salida(cmd, append);
     }
     else{
         fprintf(stderr, "Error inesperado redireccionando\n");
+        return;
     }
+
     return;
 }
 
