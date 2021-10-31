@@ -1,7 +1,9 @@
 #include "include/utils.h"
 
+/* declarada aca, recomendado con funciones estaticas. envia sig a proceso en 1er plano actual*/
 static void enviar_signal(int sig);
 
+/* child_pid = proc actual en 1er plano; head -> lista de jobs en 2do plano */
 pid_t child_pid;
 static Node *head = NULL;
 
@@ -150,8 +152,8 @@ void get_hostname(char* dst){
 void limpiar_zombies(){
     int child_status;
     pid_t zombie_pid;             
-    while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){                
-        printf("[%i]\t%i\t", eliminar_nodo(&head, zombie_pid), zombie_pid);
+    while((zombie_pid = waitpid(-1, &child_status, WNOHANG))>0){//WNOHANG -> si no hay zombie no espero                
+        printf("[%i]\t%i\t", eliminar_nodo(&head, zombie_pid), zombie_pid);// [job] pid exit_condition
         if(WIFEXITED(child_status)){
             if(WEXITSTATUS(child_status) == 0)      printf("Done\n");
             else    printf("terminated with error code\t%i\n", WEXITSTATUS(child_status));
@@ -171,20 +173,19 @@ char** obtener_args(char* src){
     char **arg_list = malloc(sizeof(char*)*MAX_ARGS);
 
     char *ptr = strtok(src, " ");
-    while(ptr != NULL && i < MAX_ARGS-1){//guardo los demas argumentos, chequeo que no sean vacio
+    while(ptr != NULL && i < MAX_ARGS-1){//nombre + 8 args max
         if(strcmp(ptr, "") != 0 && strcmp(ptr, " ") != 0 && strcmp(ptr, "\t") != 0){
             arg_list[i] = ptr;
             i++;
         }
         ptr = strtok(NULL, " ");
     }
-    arg_list[i] = NULL;
+    arg_list[i] = NULL;//null terminated list
 
     return arg_list;
 }
 
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
-    int child_status = 0;    
 
     /* Duplicate this process. */
 	child_pid = fork();
@@ -230,6 +231,7 @@ int spawn(char* program, char** arg_list, int segundo_plano, int cant_args){
                 printf("[%i] %i\n", last_job(&head), child_pid);  
             }
             else{   //Ejecuto en 1er plano
+                int child_status = 0;    
                 esperar_proceso(child_pid, child_status);
             }
     }
@@ -264,6 +266,7 @@ int spawn_pipe(char*** processes, int n_processes){
                         perror("Fork error");
                         return 1;
                     case 0: ;
+                    //"nieto" recibe input del prog anterior, escribe en su write end y ejecuta el programa
                         int proc_to_exec = n_processes-n_processes_left;
                         dup2(fdin_viejo, STDIN_FILENO);
                         if((n_processes_left-1) != 0) dup2(fds[1], STDOUT_FILENO);
@@ -274,6 +277,7 @@ int spawn_pipe(char*** processes, int n_processes){
                         close(fds[1]);
                         exit(1);
                     default: ; 
+                    //child de myshell, espera que cada programa se ejecute y guarda su read en del pipe para el prox prog
                         if(waitpid(gchild_pid, NULL, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
                             perror("Waitpid");
                             exit(1);
@@ -285,6 +289,7 @@ int spawn_pipe(char*** processes, int n_processes){
                 }
             }
         default:
+        //myshell: espera que terminen los pipes
             esperar_proceso(pid, child_status);
     }
     return 0;
@@ -332,9 +337,10 @@ int hay_redireccion(char* cmd){
     return (strchr(cmd, '<') || strchr(cmd, '>'));
 }
 
+//ej: ps -e | grep 0 -> programs[0] = ps -e; programs[1] = grep 0; return 2;
 int obtener_io(char* cmd, char** programs, char* ch){
     cmd = trimwhitespace(cmd);
-    if(strcmp(cmd, ch)==0){        
+    if(strcmp(cmd, ch)==0){// caso de cmd = '<', '>', '|', sin programas    
         return -1;
     } 
 

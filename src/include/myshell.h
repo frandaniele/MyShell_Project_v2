@@ -32,8 +32,10 @@ int cambiar_dir(char* dir);
 /* Lee instrucciones secuenciales desde un batch file */
 int leer_batchfile(char* file);
 
+/* Se encarga de crear pipes */
 void tuberia(char* cmd);
 
+/* Maneja la redireccion de input y output */
 void redireccionar(char* cmd, int flag_eco);
 
 void redireccion_entrada(char* cmd);
@@ -42,4 +44,5 @@ void redireccion_salida(char* cmd, int append);
 
 void redireccion_doble(char* cmd, int append);
 
+/* ejecuta program con input redireccionado a su entrada */
 int add_inputfile(char* program, char* input);

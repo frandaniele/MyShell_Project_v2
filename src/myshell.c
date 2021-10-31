@@ -46,13 +46,9 @@ void print_cmdline_prompt(char* username, char* hostname, char* current_path){
 
     char *home = getenv("HOME");
     int offset = strlen(home);
-    if(strncmp(home, current_path, offset) == 0){
-        if(strcmp(home,current_path) == 0){
-            current_path = "~";
-        }
-        else{
-            current_path = current_path + offset;
-        }
+    if(strncmp(home, current_path, offset) == 0){//si /home/user forma parte del PWD
+        current_path[offset-1] = '~';// lo reemplazo por '~'
+        current_path = current_path + offset-1;
     }
 
     printf("%s@%s:%s$ ", username, hostname, current_path);
@@ -90,9 +86,9 @@ void identificar_cmd(char* cmd){
 }
 
 int invocar(char* program){
-    char *arg_list[4];
-    int i = 1;
     const int MAX_ARGS = 4;
+    char *arg_list[MAX_ARGS];
+    int i = 1;
     char aux[256] = "";
 
     char *ptr = strtok(program, " ");
@@ -125,27 +121,27 @@ void eco(char* cmd){
 
         char* ptr = strtok(cmd, " ");//leo palabra a palabra
         while(ptr != NULL){
-            char ch = '\0';
+            char ch = '\0';//para caso de $envvar.!; etc
 
             while(isspace(*ptr)) ptr++;
-            if(ptr[0] == '$'){
+            if(ptr[0] == '$'){// si es envvar
                 int i = 0;
                 while(isalpha((ptr+1)[i])){
                     i++;
                 }
-                ch = ptr[i+1];
-                reemplazar_char(ptr, ch);
-                ptr = getenv(ptr+1);
+                ch = ptr[i+1];//si terminaba en algun signo o espacio
+                reemplazar_char(ptr, ch);//lo reemplazo
+                ptr = getenv(ptr+1);//obtengo envvar
             }      
-            if(ptr == NULL) ptr = "";
+            if(ptr == NULL) ptr = "";//chequeo por las dudas
             printf("%s", ptr);
-            if(ch != '\0') printf("%c ", ch);
-            else printf(" ");
+            if(ch != '\0') printf("%c ", ch);//si tuve que agregar algun char arriba
+            else printf(" ");//espacio para la siguiente palabra
 
             ptr = strtok(NULL, " ");
         }
     }
-    printf("\n");
+    printf("\n");//termine
 
     redireccionar_a_consola();
     return;
@@ -156,7 +152,7 @@ int cambiar_dir(char* dir){
 
     if(strcmp(dir,"") == 0) return 0; //input = cd
 
-    char* viejo = getenv("PWD");
+    char* viejo = getenv("PWD");//para setear OLDPWD
 
     if(strncmp(dir,"-\t", 2) == 0 || strncmp(dir,"- ", 2) == 0 || strcmp(dir,"-") == 0){ //input = cd -
         dir = getenv("OLDPWD");
@@ -222,7 +218,7 @@ void tuberia(char* cmd){
     char **programs[to_free];
     for(int j=0; j<to_free; j++){
         char** arg_list = obtener_args(buffer[j]);    // me arma la lista del prog para pasarle a execvp
-        programs[j] = arg_list;
+        programs[j] = arg_list;//voy poniendo la lista de c/prog 
     }
     
     spawn_pipe(programs, to_free);
@@ -239,59 +235,55 @@ void tuberia(char* cmd){
 void redireccionar(char* cmd, int flag_eco){
     int append = 0;
 
-    if(strchr(cmd, '<') && strchr(cmd, '>')){
-        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
-            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+    if(strchr(cmd, '<') && strchr(cmd, '>')){//hay redireccion doble
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){//input = a < b >> c
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){//input = a < b >>> c
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
             append = 1;
         }
-        if(flag_eco){
+        if(flag_eco){//si lo llame desde echo 
             char *file = strtok(cmd, "<");
-            if(append) file = strtok(file, ">>");
+            if(append) file = strtok(file, ">>");//chequeo si fue con > o >>
             else file = strtok(file, ">");
             char txt[1024];
-            if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+            if(read_text_file(trimwhitespace(file), 1024, txt)) return;//archivo input de echo
             if(append) file = strtok(NULL, ">>");
             else file = strtok(NULL, ">");
-            if(reemplazar_stdout(trimwhitespace(file), append)){
+            if(reemplazar_stdout(trimwhitespace(file), append)){//output de echo
                 fprintf(stderr, "No se pudo redireccionar\n");
                 return;
             }
-            if(strlen(txt) > 0) eco(txt);
+            if(strlen(txt) > 0) eco(txt);//chequeo que haya leido algo y ejecuto
             else{
                 fprintf(stderr, "ERROR: archivo vacio\n");
                 redireccionar_a_consola();
             }      
         }
-        else redireccion_doble(cmd, append);
+        else redireccion_doble(cmd, append);//no fue echo
     }
-    else if(strchr(cmd, '<')){
-        if(flag_eco){
+    else if(strchr(cmd, '<')){//redireccion de entrada
+        if(flag_eco){//desde echo
             char *file = strtok(cmd, "<");
             char txt[1024];
-            if(read_text_file(trimwhitespace(file), 1024, txt)) return;
+            if(read_text_file(trimwhitespace(file), 1024, txt)) return;//leo input
 
-            if(strlen(txt) > 0) eco(txt);
-            else{
-                fprintf(stderr, "ERROR: archivo vacio\n");
-                redireccionar_a_consola();
-            }
+            if(strlen(txt) > 0) eco(txt);//imprimo lo leido
         }
-        else redireccion_entrada(cmd);
+        else redireccion_entrada(cmd);//no fue echo
     }
-    else if(strchr(cmd, '>')){
-        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){
-            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){
+    else if(strchr(cmd, '>')){//redireccion de salida
+        if(strncmp((strchr(cmd, '>')+1),">", 1) == 0){//chequeo si fue con > o >>
+            if(strncmp((strchr(cmd, '>')+1),">>", 2) == 0){// >>>
                 fprintf(stderr, "Error de sintaxis\n");
                 return;
             }
             append = 1;
         }
-        if(flag_eco){
+        if(flag_eco){//desde echo
             char *file = strtok(cmd, ">");
-            char *msj = file;
+            char *msj = file;//echo msj > file
             file = strtok(NULL, ">");
             if(reemplazar_stdout(trimwhitespace(file), append)){
                 fprintf(stderr, "No se pudo redireccionar\n");
@@ -299,7 +291,7 @@ void redireccionar(char* cmd, int flag_eco){
             }
             eco(msj);
         }
-        else redireccion_salida(cmd, append);
+        else redireccion_salida(cmd, append);//no fue echo
     }
     else{
         fprintf(stderr, "Error inesperado redireccionando\n");
@@ -318,7 +310,7 @@ void redireccion_entrada(char* cmd){
         return;
     }  
     
-    if(add_inputfile(buffer[0], buffer[1])){
+    if(add_inputfile(buffer[0], buffer[1])){//buffer[0] < buffer[1]
         fprintf(stderr, "ERROR: no se pudo invocar\n");
         return;
     }
@@ -339,7 +331,7 @@ void redireccion_salida(char* cmd, int append){
         return;
     }  
 
-    if(reemplazar_stdout(buffer[1], append)){
+    if(reemplazar_stdout(buffer[1], append)){//buffer[0] > buffer[1]
         fprintf(stderr, "No se pudo redireccionar\n");
         return;
     }
@@ -360,24 +352,24 @@ void redireccion_doble(char* cmd, int append){
     char *input, *output, *program;
     int to_free1, to_free2;
     
-    if((to_free1 = obtener_io(cmd, buffer1, ">"))<2){ // debe haber 2 elementos alocados
+    if((to_free1 = obtener_io(cmd, buffer1, ">"))<2){ // (a < b) > (c) -> debo obtener 2
         fprintf(stderr, "ERROR: file is empty\n");
         return;
     }  
-    if(strchr(buffer1[0], '<')){
-        if((to_free2 = obtener_io(buffer1[0], buffer2, "<"))<0)  return;
-        input = buffer2[1];
-        output = buffer1[1];
-        program = buffer2[0];
+    if(strchr(buffer1[0], '<')){//input: a < b > c
+        if((to_free2 = obtener_io(buffer1[0], buffer2, "<"))<2)  return; //buffer1[0] = a<b; buffer1[1] = c  
+        input = buffer2[1];//b
+        output = buffer1[1];//c
+        program = buffer2[0];//a
     }
-    else{
-        if((to_free2 = obtener_io(buffer1[1], buffer2, "<"))<2){ // debe haber 2 elementos alocados
-            fprintf(stderr, "ERROR: file is empty\n");
+    else{//input: a > b < c
+        if((to_free2 = obtener_io(buffer1[1], buffer2, "<"))<2){//buffer1[0] = a; buffer1[1] = b<c
+            fprintf(stderr, "ERROR: file is empty\n");//falto algun argumento
             return;
         }  
-        input = buffer2[1];
-        output = buffer2[0];
-        program = buffer1[0];
+        input = buffer2[1];//c
+        output = buffer2[0];//b
+        program = buffer1[0];//a
     }
 
     if(reemplazar_stdout(output, append)){
@@ -404,10 +396,10 @@ void redireccion_doble(char* cmd, int append){
 }
 
 int add_inputfile(char* program, char* input){
-    if(strlen(program) == 0 || strlen(input) == 0) return 1;
+    if(strlen(program) == 0 || strlen(input) == 0) return 1;//alguna entrada invalida
 
-    char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);
-    if(aux == NULL)  return 1;
+    char *aux = (char*) malloc(strlen(input) + strlen(program) + 1);//voy a invocar aux con input
+    if(aux == NULL)  return 1;//fallo malloc
 
     strcpy(aux, program);
     strcat(aux, " ");

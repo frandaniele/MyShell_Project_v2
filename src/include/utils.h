@@ -19,6 +19,8 @@
 
 */
 
+/*  Estructura para lista enlazada de procesos en background 
+    Tiene un pid y un numero de job */
 typedef struct Node{
     pid_t pid;
     int n_job;
@@ -42,18 +44,24 @@ void help_menu(FILE* stream, int exit_code);
 void get_env_var(char* dst, char* var);
 void get_hostname(char* dst);
 
+/* Crea una lista null terminated con el nombre de un proceso 
+  y los argumentos con que será llamado */
 char** obtener_args(char* src);
 
+/* Se encarga de limpiar procesos zombies si los hay */
 void limpiar_zombies();
 
 /* Crea un proceso imagen y ejecuta program */
 int spawn(char* program, char** arg_list, int segundo_plano, int cant_args);
 
+/* Crea tantas pipes como n_processes e invoca a los mismos */
 int spawn_pipe(char*** processes, int n_processes);
 
 /* Detecta el ampersand que determina la ejecucion en 2do plano */
 int identificar_seg_plano(char* str);
 
+/* se encarga de instalar los signal handlers necesarios
+  y espera por el proceso con pid que está en primer plano */
 void esperar_proceso(pid_t pid, int status);
 
 /* Ejecuta el programa  */
@@ -71,10 +79,14 @@ int last_job(Node** head_ref);
 /*  Detecta si se debe redireccionar  */
 int hay_redireccion(char* command);
 
+/* Divide cmd segun ch y guarda cada string en programs */
 int obtener_io(char* cmd, char** programs, char* ch);
 
+/* reemplaza el stdout por file en el modo necesario */
 int reemplazar_stdout(char* file, int append);
 
+/* redirecciona output a la consola */
 void redireccionar_a_consola();
 
+/* instala a SIG_QUIT|TSTP|INT el handler s */
 void instalar_signals(__sighandler_t s);

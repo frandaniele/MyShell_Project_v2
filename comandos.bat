@@ -19,9 +19,10 @@ ps
 echo Este mensaje lo verás cuando termine de ejecutarse el programa anterior
 echo Ahora un ejemplo de redireccion doble
 wc < src/app.c > redir.txt
-sleep 10
+sleep 5
 echo Veremos unos ejemplos de pipe
 sleep 1
+last francisco | wc -l
 src/bin/app | grep esperar | sort | wc
 grep bash /etc/passwd | cut -d : -f 1 | sort -r
 echo Hasta acá llegamos, chau! >> despedida.txt
