@@ -7,7 +7,8 @@ int main(int argc, char **argv){
     const struct option long_options[] = {  { "help", 0, NULL, 'h' },
                                             { NULL, 0, NULL, 0 } 
                                             };
-                                                
+
+    printf("holaaaaa\n");            
     if(argc == 2){
         int next_option;
         next_option = getopt_long(argc, argv, short_options, long_options, NULL);
@@ -59,7 +60,6 @@ void identificar_cmd(char* cmd){
     while(isspace(*cmd)) cmd++;
 
     if(strcmp(cmd, "quit") == 0 || strncmp(cmd, "quit ", 5) == 0 || strncmp("quit\t", cmd, 5) == 0){
-        printf("Hasta luego. Gracias por utilizar mi shell :p\n");
         exit(0);
     }
     else if(strcmp(cmd, "clr") == 0 || strncmp("clr ", cmd, 4) == 0 || strncmp("clr\t", cmd, 4) == 0){
