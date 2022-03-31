@@ -3,10 +3,13 @@
 
 int main(int argc, char **arg){
 
-    printf("Soy un archivo para probar la invocacion de programas.\n");
-    printf("Ojalá tener exito. Voy a esperar un ratito.\n");
+    
     sleep(10);
     printf("Me canse de esperar. Chau\n");
-
+    int a = 1;
+    int b = 3;
+    int c = a + b;
+    printf("aja %i\n", c);
+//sasas
     return 0;
 }

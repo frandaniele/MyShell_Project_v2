@@ -277,7 +277,7 @@ int spawn_pipe(char*** processes, int n_processes){
                         close(fds[1]);
                         exit(1);
                     default: ; 
-                    //child de myshell, espera que cada programa se ejecute y guarda su read en del pipe para el prox prog
+                    //child de myshell, espera que cada programa se ejecute y guarda su read end del pipe para el prox prog
                         if(waitpid(gchild_pid, NULL, WUNTRACED) == -1){//wuntraced: vuelvo tambien si fue stopped
                             perror("Waitpid");
                             exit(1);
@@ -363,7 +363,7 @@ int reemplazar_stdout(char* file, int append){
     if(append) strcpy(mode, "a+");
     else strcpy(mode, "w");
 
-    if(freopen(file, mode, stdout) == NULL){
+    if(freopen(file, mode, stdout) == NULL){//associates a new filename with the given open stream and at the same time closes the old file in the stream
         perror("ERROR en redireccion de salida");
         redireccionar_a_consola();
         return 1;
@@ -373,7 +373,7 @@ int reemplazar_stdout(char* file, int append){
 }
 
 void redireccionar_a_consola(){
-    if(freopen("/dev/tty", "w", stdout) == NULL){
+    if(freopen("/dev/tty", "w", stdout) == NULL){ //asocia a stdout un new filename (dev/tty) y cierra el file viejo en el stream
         perror("ERROR al redireccionar la salida a la consola");
         exit(1);
     }

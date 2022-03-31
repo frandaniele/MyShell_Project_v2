@@ -244,7 +244,7 @@ void redireccionar(char* cmd, int flag_eco){
             append = 1;
         }
         if(flag_eco){//si lo llame desde echo 
-            char *file = strtok(cmd, "<");
+            char *file = strtok(cmd, "<");//recibo "< input > output"
             if(append) file = strtok(file, ">>");//chequeo si fue con > o >>
             else file = strtok(file, ">");
             char txt[1024];
