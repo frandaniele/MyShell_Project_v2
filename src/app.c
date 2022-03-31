@@ -7,6 +7,7 @@ int main(int argc, char **arg){
     printf("Ojalá tener exito. Voy a esperar un ratito.\n");
     sleep(10);
     printf("Me canse de esperar. Chau\n");
+    printf("bye bye");
 
     return 0;
 }
